@@ -1,10 +1,9 @@
 import asyncio
 from playground.network.packet import PacketType
 from playground.network.packet.fieldtypes import UINT32, STRING, BUFFER, BOOL
-from playground.asyncio_lib.testing import TestLoopEx
-from playground.network.testing import MockTransportToStorageStream
-from playground.network.testing import MockTransportToProtocol
+import playground
 import random
+import sys, time, os, logging, asyncio
 
 
 class RequestToConnect(PacketType):
@@ -56,6 +55,7 @@ class MyProtocolClient(asyncio.Protocol):
     def data_received(self, data):
         self._deserializer.update(data)
         for pkt in self._deserializer.nextPackets():
+            print(pkt)
             if isinstance(pkt, NameRequest):
                 sentNamePkt = AnswerNameRequest()
                 sentNamePkt.ID = pkt.ID
@@ -66,11 +66,14 @@ class MyProtocolClient(asyncio.Protocol):
             if isinstance(pkt, Result):
                 if pkt.result == True:
                     print("connect to server success")
+                    self.transport.close()
                 elif pkt.result == False:
                     print("connect to server Failed")
+                    self.transport.close()
 
     def connection_lost(self, exc):
         self.transport = None
+        self.loop.stop()
 
 
 # this is the server
@@ -86,6 +89,7 @@ class MyProtocolServer(asyncio.Protocol):
     def data_received(self, data):
         self._deserializer.update(data)
         for pkt in self._deserializer.nextPackets():
+            print(pkt)
             if isinstance(pkt, RequestToConnect):
                 print(pkt.DEFINITION_IDENTIFIER)
                 NameRequestpkt = NameRequest()
@@ -116,15 +120,37 @@ class MyProtocolServer(asyncio.Protocol):
 
 #
 def basicUnitTest():
-    clientProtocol = MyProtocolClient("hello", TestLoopEx())
-    serverProtocol = MyProtocolServer()
-    transportToServer = MockTransportToProtocol(myProtocol=clientProtocol)
-    transportToClient = MockTransportToProtocol(myProtocol=serverProtocol)
-    transportToServer.setRemoteTransport(transportToClient)
-    transportToClient.setRemoteTransport(transportToServer)
+    echoArgs = {}
 
-    serverProtocol.connection_made(transportToClient)
-    clientProtocol.connection_made(transportToServer)
+    args = sys.argv[1:]
+    i = 0
+    for arg in args:
+        if arg.startswith("-"):
+            k, v = arg.split("=")
+            echoArgs[k] = v
+        else:
+            echoArgs[i] = arg
+            i += 1
+
+    mode = echoArgs[0]
+    loop = asyncio.get_event_loop()
+
+    if mode.lower() == "server":
+        coro = playground.getConnector().create_playground_server(MyProtocolServer, 101)
+        server = loop.run_until_complete(coro)
+        print('Serving on {}'.format(server.sockets[0].gethostname()))
+        loop.run_forever()
+        loop.run_until_complete(server.wait_closed())
+        loop.close()
+
+
+    else:
+        address = mode
+        coro = playground.getConnector().create_playground_connection(lambda: MyProtocolClient("hello", loop),
+                                                                      address, 101)
+        loop.run_until_complete(coro)
+        loop.run_forever()
+        loop.close()
 
 
 if __name__ == "__main__":
