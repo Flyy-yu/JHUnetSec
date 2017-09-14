@@ -136,18 +136,19 @@ def basicUnitTest():
     loop = asyncio.get_event_loop()
 
     if mode.lower() == "server":
-        coro = playground.getConnector().create_playground_server(MyProtocolServer, 101)
+        coro = playground.getConnector().create_playground_server(lambda: MyProtocolServer(), 101)
+        #coro = loop.create_server(MyProtocolServer, '127.0.0.1', 8888)
         server = loop.run_until_complete(coro)
         print('Serving on {}'.format(server.sockets[0].gethostname()))
         loop.run_forever()
-        loop.run_until_complete(server.wait_closed())
         loop.close()
-
-
     else:
         address = mode
         coro = playground.getConnector().create_playground_connection(lambda: MyProtocolClient("hello", loop),
                                                                       address, 101)
+
+        #coro = loop.create_connection(lambda: MyProtocolClient("hello", loop),
+        #                              '127.0.0.1', 8888)
         loop.run_until_complete(coro)
         loop.run_forever()
         loop.close()
