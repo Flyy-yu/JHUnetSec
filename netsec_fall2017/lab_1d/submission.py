@@ -73,7 +73,7 @@ class MyProtocolClient(asyncio.Protocol):
 
     def connection_lost(self, exc):
         self.transport = None
-        self.loop.stop()
+        #self.loop.stop()
 
 
 # this is the server
