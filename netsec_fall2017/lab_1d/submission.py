@@ -84,12 +84,12 @@ class MyProtocolServer(asyncio.Protocol):
         self._deserializer = PacketType.Deserializer()
 
     def connection_made(self, transport):
+        print("Received a connection from {}".format(transport.get_extra_info("peername")))
         self.transport = transport
 
     def data_received(self, data):
         self._deserializer.update(data)
         for pkt in self._deserializer.nextPackets():
-            print(pkt)
             if isinstance(pkt, RequestToConnect):
                 print(pkt.DEFINITION_IDENTIFIER)
                 NameRequestpkt = NameRequest()
@@ -132,21 +132,25 @@ def basicUnitTest():
             echoArgs[i] = arg
             i += 1
 
+    if not 0 in echoArgs:
+        sys.exit("1")
+
     mode = echoArgs[0]
     loop = asyncio.get_event_loop()
+    loop.set_debug(enabled=True)
 
     if mode.lower() == "server":
         coro = playground.getConnector().create_playground_server(lambda: MyProtocolServer(), 101)
-        #coro = loop.create_server(MyProtocolServer, '127.0.0.1', 8888)
         server = loop.run_until_complete(coro)
-        print('Serving on {}'.format(server.sockets[0].gethostname()))
+        print("Echo Server Started at {}".format(server.sockets[0].gethostname()))
         loop.run_forever()
         loop.close()
+
+
     else:
         address = mode
         coro = playground.getConnector().create_playground_connection(lambda: MyProtocolClient("hello", loop),
                                                                       address, 101)
-
         #coro = loop.create_connection(lambda: MyProtocolClient("hello", loop),
         #                              '127.0.0.1', 8888)
         loop.run_until_complete(coro)
