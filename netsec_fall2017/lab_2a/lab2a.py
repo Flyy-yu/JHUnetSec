@@ -103,6 +103,8 @@ def basicUnitTest():
     if not 0 in echoArgs:
         sys.exit("1")
 
+    
+
     fclient = StackingProtocolFactory(lambda: PassThroughc1(), lambda: PassThroughc2())
     ptConnectorclient = playground.Connector(protocolStack=fclient)
     playground.setConnector("passthroughclient", ptConnectorclient)

@@ -130,8 +130,8 @@ class PassThroughs2(StackingProtocol):
                         print("server: SYN-ACK sent")
                         self.transport.write(SYN_ACK.__serialize__())
                         self.state = 1
-                        
-                if pkt.Type == 2 and self.state ==1:
+
+                if pkt.Type == 2 and self.state == 1:
                     if pkt.verifyChecksum():
                         self.handshake = True
                         print("got ACK, handshake done")

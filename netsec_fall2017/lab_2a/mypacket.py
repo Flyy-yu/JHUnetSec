@@ -4,6 +4,7 @@ from playground.network.packet.fieldtypes.attributes import *
 import zlib
 
 
+
 class RequestToConnect(PacketType):
     DEFINITION_IDENTIFIER = "RequestToConnect"
     DEFINITION_VERSION = "1.0"
