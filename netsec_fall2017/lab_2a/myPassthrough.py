@@ -37,7 +37,7 @@ class PassThroughs1(StackingProtocol):
         self.transport = None
 
 
-#
+# state macine
 class PassThroughc2(StackingProtocol):
     def __init__(self):
         self.transport = None
