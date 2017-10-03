@@ -1,12 +1,6 @@
-import asyncio
-from playground.network.packet import PacketType
-from playground.network.packet.fieldtypes import *
 import playground
 import random
 import sys, time, os, logging, asyncio
-from playground.network.common import *
-from playground.network.packet.fieldtypes.attributes import *
-from mypacket import *
 from myPassthrough import *
 
 
