@@ -37,13 +37,18 @@ class PassThroughs1(StackingProtocol):
         self.transport = None
 
 
-# state macine
+#
+# state machine for client
+# 0: initial state
+# 1: SYN sent, wait for SYN-ACK
+# 2: SYN-ACK received, sent ACK
 class PassThroughc2(StackingProtocol):
     def __init__(self):
         self.transport = None
         self._deserializer = PacketType.Deserializer()
         self.handshake = False
         self.seq = 0
+        self.state = 0
 
     def connection_made(self, transport):
         self.transport = transport
@@ -60,7 +65,7 @@ class PassThroughc2(StackingProtocol):
         self._deserializer.update(data)
         for pkt in self._deserializer.nextPackets():
             if isinstance(pkt, PEEPPacket):
-                if pkt.Type == 1:
+                if pkt.Type == 1 and self.state == 0:
                     print("SYN-ACK received")
                     if pkt.verifyChecksum():
                         ACK = PEEPPacket()
@@ -71,6 +76,7 @@ class PassThroughc2(StackingProtocol):
                         print("client: ACK sent")
                         ACK.Checksum = ACK.calculateChecksum()
                         self.transport.write(ACK.__serialize__())
+                        self.state = 1
                         self.handshake = True
                         print("ACK sent, handshake done")
                         print("------------------------------")
@@ -94,12 +100,17 @@ class PassThroughc2(StackingProtocol):
 
 
 #
+# state machine for server
+# 0: initial state, wait for SYN
+# 1: received SYN, sent SYN-ACK, wait for ACK
+# 2: ACK received, finished handshake
 class PassThroughs2(StackingProtocol):
     def __init__(self):
         self.transport = None
         self._deserializer = PacketType.Deserializer()
         self.handshake = False
         self.seq = 0
+        self.state = 0
 
     def connection_made(self, transport):
         self.transport = transport
@@ -108,7 +119,7 @@ class PassThroughs2(StackingProtocol):
         self._deserializer.update(data)
         for pkt in self._deserializer.nextPackets():
             if isinstance(pkt, PEEPPacket):
-                if pkt.Type == 0:
+                if pkt.Type == 0 and self.state == 0:
                     if pkt.verifyChecksum():
                         print("received SYN")
                         SYN_ACK = PEEPPacket()
@@ -118,8 +129,9 @@ class PassThroughs2(StackingProtocol):
                         SYN_ACK.Checksum = SYN_ACK.calculateChecksum()
                         print("server: SYN-ACK sent")
                         self.transport.write(SYN_ACK.__serialize__())
+                        self.state = 1
                         
-                if pkt.Type == 2:
+                if pkt.Type == 2 and self.state ==1:
                     if pkt.verifyChecksum():
                         self.handshake = True
                         print("got ACK, handshake done")
