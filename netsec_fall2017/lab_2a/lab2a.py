@@ -85,8 +85,18 @@ class MyProtocolServer(asyncio.Protocol):
         self.transport = None
 
 
-
 #
+
+def PeepClientFactory():
+    fclient = StackingProtocolFactory(lambda: PassThroughc1(), lambda: PassThroughc2())
+    return fclient
+
+
+def PeepServerFactory():
+    fserver = StackingProtocolFactory(lambda: PassThroughs1(), lambda: PassThroughs2())
+    return fserver
+
+
 def basicUnitTest():
     echoArgs = {}
 
@@ -100,25 +110,23 @@ def basicUnitTest():
             echoArgs[i] = arg
             i += 1
 
-    if not 0 in echoArgs:
+    if 0 not in echoArgs:
         sys.exit("1")
 
-    
-
     fclient = StackingProtocolFactory(lambda: PassThroughc1(), lambda: PassThroughc2())
-    ptConnectorclient = playground.Connector(protocolStack=fclient)
-    playground.setConnector("passthroughclient", ptConnectorclient)
-
     fserver = StackingProtocolFactory(lambda: PassThroughs1(), lambda: PassThroughs2())
-    ptConnectorserver = playground.Connector(protocolStack=fserver)
-    playground.setConnector("passthroughserver", ptConnectorserver)
+
+    lab2Connector = playground.Connector(protocolStack=(
+        fclient,
+        fserver))
+    playground.setConnector("lab2_protocol", lab2Connector)
 
     mode = echoArgs[0]
     loop = asyncio.get_event_loop()
     loop.set_debug(enabled=True)
 
     if mode.lower() == "server":
-        coro = playground.getConnector('passthroughserver').create_playground_server(lambda: MyProtocolServer(), 101)
+        coro = playground.getConnector('lab2_protocol').create_playground_server(lambda: MyProtocolServer(), 101)
         server = loop.run_until_complete(coro)
         print("my Server Started at {}".format(server.sockets[0].gethostname()))
         loop.run_forever()
@@ -127,7 +135,7 @@ def basicUnitTest():
 
     else:
         address = mode
-        coro = playground.getConnector('passthroughclient').create_playground_connection(
+        coro = playground.getConnector('lab2_protocol').create_playground_connection(
             lambda: MyProtocolClient("hello", loop),
             address, 101)
         loop.run_until_complete(coro)
