@@ -1,5 +1,6 @@
 from playground.network.common import *
 from mypacket import *
+import time
 
 
 class PassThroughc1(StackingProtocol):
@@ -49,6 +50,7 @@ class PassThroughc2(StackingProtocol):
         self.handshake = False
         self.seq = 0
         self.state = 0
+        self.sessid=''
 
     def connection_made(self, transport):
         self.transport = transport
@@ -72,6 +74,8 @@ class PassThroughc2(StackingProtocol):
                         ACK.Type = 2  # ACK -  TYPE 2
 
                         self.seq = self.seq + 1
+                        self.sessid=pkt.SessionId
+                        print("The session id is",self.sessid)
                         ACK.updateSeqAcknumber(seq=self.seq, ack=pkt.SequenceNumber + 1)
                         print("client: ACK sent")
                         ACK.Checksum = ACK.calculateChecksum()
@@ -111,6 +115,7 @@ class PassThroughs2(StackingProtocol):
         self.handshake = False
         self.seq = 0
         self.state = 0
+        self.sessid=''
 
     def connection_made(self, transport):
         self.transport = transport
@@ -124,6 +129,8 @@ class PassThroughs2(StackingProtocol):
                         print("received SYN")
                         SYN_ACK = PEEPPacket()
                         SYN_ACK.Type = 1
+                        self.sessid=time.time()
+                        SYN_ACK.SessionId=self.sessid
                         self.seq = self.seq + 1
                         SYN_ACK.updateSeqAcknumber(seq=self.seq, ack=pkt.SequenceNumber + 1)
                         SYN_ACK.Checksum = SYN_ACK.calculateChecksum()
