@@ -44,6 +44,7 @@ class PEEPPacket(PacketType):
         ("Type", UINT8),
         ("SequenceNumber", UINT32({Optional: True})),
         ("Checksum", UINT16),
+        ("SessionId",STRING({Optional: True})),
         ("Acknowledgement", UINT32({Optional: True})),
         ("Data", BUFFER({Optional: True}))
     ]
