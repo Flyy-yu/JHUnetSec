@@ -43,7 +43,7 @@ class PEEPPacket(PacketType):
     FIELDS = [
         ("Type", UINT8),
         ("SequenceNumber", UINT32({Optional: True})),
-        ("Checksum", UINT16),
+        ("Checksum", UINT16({Optional: True})),
         ("SessionId",STRING({Optional: True})),
         ("Acknowledgement", UINT32({Optional: True})),
         ("Data", BUFFER({Optional: True}))
@@ -65,3 +65,10 @@ class PEEPPacket(PacketType):
 
     def verifyChecksum(self):
         return self.Checksum == self.calculateChecksum()
+
+# SYN -      TYPE 0
+# SYN-ACK -  TYPE 1
+# ACK -      TYPE 2
+# RIP -      TYPE 3
+# RIP-ACK -  TYPE 4
+# DATA -      TYPE 5

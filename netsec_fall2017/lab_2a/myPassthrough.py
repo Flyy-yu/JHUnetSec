@@ -1,6 +1,7 @@
 from playground.network.common import *
 from mypacket import *
 import time
+from MyProtocolTransport import *
 
 
 class PassThroughc1(StackingProtocol):
@@ -39,6 +40,8 @@ class PassThroughs1(StackingProtocol):
 
 
 #
+
+
 # state machine for client
 # 0: initial state
 # 1: SYN sent, wait for SYN-ACK
@@ -50,7 +53,7 @@ class PassThroughc2(StackingProtocol):
         self.handshake = False
         self.seq = 0
         self.state = 0
-        self.sessid=''
+        self.sessid = ''
 
     def connection_made(self, transport):
         self.transport = transport
@@ -74,8 +77,8 @@ class PassThroughc2(StackingProtocol):
                         ACK.Type = 2  # ACK -  TYPE 2
 
                         self.seq = self.seq + 1
-                        self.sessid=pkt.SessionId
-                        print("The session id is",self.sessid)
+                        self.sessid = pkt.SessionId
+                        print("The session id is", self.sessid)
                         ACK.updateSeqAcknumber(seq=self.seq, ack=pkt.SequenceNumber + 1)
                         print("client: ACK sent")
                         ACK.Checksum = ACK.calculateChecksum()
@@ -85,18 +88,24 @@ class PassThroughc2(StackingProtocol):
                         print("ACK sent, handshake done")
                         print("------------------------------")
                         print("upper level start here")
-                        if self.handshake == True:
-                            higherTransport = StackingTransport(self.transport)
-                            self.higherProtocol().connection_made(higherTransport)
+                        higherTransport = MyTransport(self.transport)
+                        self.higherProtocol().connection_made(higherTransport)
 
-                            # if pkt.Type == 3:
-                            #     RIP_ACK = PEEPPacket()
-                            #     RIP_ACK.Type = 4
-                            #     RIP_ACK.calculateChecksum()
-                            #     print("client: RIP-ACK sent")
-                            #     self.transport.write(RIP_ACK.__serialize__())
-        if self.handshake == True:
-            self.higherProtocol().data_received(data)
+                        # if pkt.Type == 3:
+                        #     RIP_ACK = PEEPPacket()
+                        #     RIP_ACK.Type = 4
+                        #     RIP_ACK.calculateChecksum()
+                        #     print("client: RIP-ACK sent")
+                        #     self.transport.write(RIP_ACK.__serialize__())
+
+            if self.handshake == True:
+                if pkt.Type == 5:
+                    if verify_packet(pkt, 123):
+                        print("verify_packet from client")
+                        Ackpacket = generate_ACK(1, 2)
+                        self.higherProtocol().data_received(pkt.Data)
+                        self.lowerTransport().write(Ackpacket.__serialize__())
+
 
     def connection_lost(self, exc):
         self.higherProtocol().connection_lost()
@@ -115,7 +124,7 @@ class PassThroughs2(StackingProtocol):
         self.handshake = False
         self.seq = 0
         self.state = 0
-        self.sessid=''
+        self.sessid = ''
 
     def connection_made(self, transport):
         self.transport = transport
@@ -129,8 +138,8 @@ class PassThroughs2(StackingProtocol):
                         print("received SYN")
                         SYN_ACK = PEEPPacket()
                         SYN_ACK.Type = 1
-                        self.sessid=time.time()
-                        SYN_ACK.SessionId=self.sessid
+                        self.sessid = time.time()
+                        SYN_ACK.SessionId = self.sessid
                         self.seq = self.seq + 1
                         SYN_ACK.updateSeqAcknumber(seq=self.seq, ack=pkt.SequenceNumber + 1)
                         SYN_ACK.Checksum = SYN_ACK.calculateChecksum()
@@ -144,7 +153,8 @@ class PassThroughs2(StackingProtocol):
                         print("got ACK, handshake done")
                         print("------------------------------")
                         print("upper level start here")
-                        higherTransport = StackingTransport(self.transport)
+
+                        higherTransport = MyTransport(self.transport)
                         self.higherProtocol().connection_made(higherTransport)
 
                         # if pkt.Type == 3:
@@ -154,12 +164,50 @@ class PassThroughs2(StackingProtocol):
                         #     print("server: RIP-ACK sent")
                         #     self.transport.write(RIP_ACK.__serialize__())
 
-        if self.handshake == True:
-            self.higherProtocol().data_received(data)
+            if self.handshake == True:
+                if pkt.Type == 5:
+                    if verify_packet(pkt, 123):
+                        print("verify_packet from server")
+                        Ackpacket = generate_ACK(1, 2)
+                        self.higherProtocol().data_received(pkt.Data)
+                        self.lowerTransport().write(Ackpacket.__serialize__())
+
 
     def connection_lost(self, exc):
         self.higherProtocol().connection_lost()
         self.transport = None
 
 
-        #
+def verify_packet(packet, id):
+    goodpacket = True
+    if packet.verifyChecksum() == False:
+        print("wrong checksum")
+        goodpacket = False
+    # if packet.SessionId != id:
+    #     print("wrong session ID")
+    #     goodpacket = False
+    return goodpacket
+
+
+def generate_ACK(seq_number, ack_number):
+    ACK = PEEPPacket()
+    ACK.Type = 2
+    ACK.SequenceNumber = seq_number
+    ACK.Acknowledgement = ack_number
+    ACK.calculateChecksum()
+    return ACK
+
+
+
+
+    # FIELDS = [
+    #     ("Type", UINT8),
+    #     ("SequenceNumber", UINT32({Optional: True})),
+    #     ("Checksum", UINT16),
+    #     ("SessionId", STRING({Optional: True})),
+    #     ("Acknowledgement", UINT32({Optional: True})),
+    #     ("Data", BUFFER({Optional: True}))
+    # ]
+    # # Create MyProtocolPackets
+    #     for each pkt in MyProtocolPackets:
+    #         self.lowerTransport().write(pkt.__serialize__())
