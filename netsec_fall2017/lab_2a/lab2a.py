@@ -17,12 +17,12 @@ class MyProtocolClient(asyncio.Protocol):
         # requestPkt = RequestToConnect()
         # requestpktB = requestPkt.__serialize__()
         # print("client: RequestToConnect sent")
-        self.transport.write("client: RequestToConnect sent")
+        self.transport.write("hello whats up, this is client")
 
     def data_received(self, data):
 
         print(data)
-        self.transport.write("hello whats up, this is client")
+        #self.transport.write("hello whats up, this is client")
 
         # self._deserializer.update(data)
         # for pkt in self._deserializer.nextPackets():

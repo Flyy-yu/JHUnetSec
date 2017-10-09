@@ -1,7 +1,12 @@
-from playground.network.common import *
-from mypacket import *
 import time
 from MyProtocolTransport import *
+import logging
+
+# logging.getLogger().setLevel(logging.NOTSET) # this logs *everything*
+# logging.getLogger().addHandler(logging.StreamHandler()) # logs to stderr
+
+
+info_list = item_list()
 
 
 class PassThroughc1(StackingProtocol):
@@ -88,7 +93,11 @@ class PassThroughc2(StackingProtocol):
                         print("ACK sent, handshake done")
                         print("------------------------------")
                         print("upper level start here")
+                        # setup the info_list for this protocal
+                        info_list.sequenceNumber = self.seq
+                        info_list.SessionId = self.sessid
                         higherTransport = MyTransport(self.transport)
+                        higherTransport.setinfo(info_list)
                         self.higherProtocol().connection_made(higherTransport)
 
                         # if pkt.Type == 3:
@@ -100,12 +109,11 @@ class PassThroughc2(StackingProtocol):
 
             if self.handshake == True:
                 if pkt.Type == 5:
-                    if verify_packet(pkt, 123):
+                    if verify_packet(pkt, self.sessid):
                         print("verify_packet from client")
-                        Ackpacket = generate_ACK(1, 2)
+                        Ackpacket = generate_ACK(self.seq, pkt.SequenceNumber+1)
                         self.higherProtocol().data_received(pkt.Data)
-                        self.lowerTransport().write(Ackpacket.__serialize__())
-
+                        self.transport.write(Ackpacket.__serialize__())
 
     def connection_lost(self, exc):
         self.higherProtocol().connection_lost()
@@ -138,7 +146,7 @@ class PassThroughs2(StackingProtocol):
                         print("received SYN")
                         SYN_ACK = PEEPPacket()
                         SYN_ACK.Type = 1
-                        self.sessid = time.time()
+                        self.sessid = str(time.time())
                         SYN_ACK.SessionId = self.sessid
                         self.seq = self.seq + 1
                         SYN_ACK.updateSeqAcknumber(seq=self.seq, ack=pkt.SequenceNumber + 1)
@@ -153,8 +161,11 @@ class PassThroughs2(StackingProtocol):
                         print("got ACK, handshake done")
                         print("------------------------------")
                         print("upper level start here")
-
+                        # setup the info_list for this protocal
+                        info_list.sequenceNumber = self.seq
+                        info_list.SessionId = self.sessid
                         higherTransport = MyTransport(self.transport)
+                        higherTransport.setinfo(info_list)
                         self.higherProtocol().connection_made(higherTransport)
 
                         # if pkt.Type == 3:
@@ -166,12 +177,11 @@ class PassThroughs2(StackingProtocol):
 
             if self.handshake == True:
                 if pkt.Type == 5:
-                    if verify_packet(pkt, 123):
+                    if verify_packet(pkt, self.sessid):
                         print("verify_packet from server")
-                        Ackpacket = generate_ACK(1, 2)
+                        Ackpacket = generate_ACK(self.seq, pkt.SequenceNumber+1)
                         self.higherProtocol().data_received(pkt.Data)
-                        self.lowerTransport().write(Ackpacket.__serialize__())
-
+                        self.transport.write(Ackpacket.__serialize__())
 
     def connection_lost(self, exc):
         self.higherProtocol().connection_lost()
@@ -183,9 +193,9 @@ def verify_packet(packet, id):
     if packet.verifyChecksum() == False:
         print("wrong checksum")
         goodpacket = False
-    # if packet.SessionId != id:
-    #     print("wrong session ID")
-    #     goodpacket = False
+    if packet.SessionId != id:
+        print("wrong session ID")
+        goodpacket = False
     return goodpacket
 
 
