@@ -2,9 +2,8 @@ import time
 from MyProtocolTransport import *
 import logging
 
-# logging.getLogger().setLevel(logging.NOTSET) # this logs *everything*
-# logging.getLogger().addHandler(logging.StreamHandler()) # logs to stderr
-
+# logging.getLogger().setLevel(logging.NOTSET)  # this logs *everything*
+# logging.getLogger().addHandler(logging.StreamHandler())  # logs to stderr
 
 info_list = item_list()
 
@@ -59,6 +58,7 @@ class PassThroughc2(StackingProtocol):
         self.seq = 0
         self.state = 0
         self.sessid = ''
+        self.ack_counter = 0
 
     def connection_made(self, transport):
         self.transport = transport
@@ -94,11 +94,14 @@ class PassThroughc2(StackingProtocol):
                         print("------------------------------")
                         print("upper level start here")
                         # setup the info_list for this protocal
+
+
                         info_list.sequenceNumber = self.seq
                         info_list.SessionId = self.sessid
-                        higherTransport = MyTransport(self.transport)
-                        higherTransport.setinfo(info_list)
-                        self.higherProtocol().connection_made(higherTransport)
+                        info_list.init_seq = self.seq
+                        self.higherTransport = MyTransport(self.transport)
+                        self.higherTransport.setinfo(info_list)
+                        self.higherProtocol().connection_made(self.higherTransport)
 
                         # if pkt.Type == 3:
                         #     RIP_ACK = PEEPPacket()
@@ -107,13 +110,28 @@ class PassThroughc2(StackingProtocol):
                         #     print("client: RIP-ACK sent")
                         #     self.transport.write(RIP_ACK.__serialize__())
 
-            if self.handshake == True:
+            # client and server should be the same, start from here
+            if self.handshake:
                 if pkt.Type == 5:
                     if verify_packet(pkt, self.sessid):
-                        print("verify_packet from client")
-                        Ackpacket = generate_ACK(self.seq, pkt.SequenceNumber+1)
+                        # print("verify_packet from client")
+
+                        Ackpacket = generate_ACK(self.seq, pkt.SequenceNumber + packet_size)
                         self.higherProtocol().data_received(pkt.Data)
                         self.transport.write(Ackpacket.__serialize__())
+                if pkt.Type == 2:
+                    self.ack_counter = self.ack_counter + 1
+                    # print(self.ack_counter)
+                    # print("I got an ACK")
+
+                    if self.ack_counter == window_size and pkt.Acknowledgement < len(info_list.file_data):
+                        print("next round")
+                        self.ack_counter = 0
+                        w_p = (pkt.Acknowledgement - info_list.init_seq) / packet_size
+                        print("this is wp: " + str(w_p))
+                        info_list.w_p = int(w_p)
+                        info_list.sequenceNumber = pkt.Acknowledgement
+                        self.higherTransport.write(info_list.file_data)
 
     def connection_lost(self, exc):
         self.higherProtocol().connection_lost()
@@ -133,6 +151,7 @@ class PassThroughs2(StackingProtocol):
         self.seq = 0
         self.state = 0
         self.sessid = ''
+        self.ack_counter = 0
 
     def connection_made(self, transport):
         self.transport = transport
@@ -162,12 +181,15 @@ class PassThroughs2(StackingProtocol):
                         print("------------------------------")
                         print("upper level start here")
                         # setup the info_list for this protocal
+
+
                         info_list.sequenceNumber = self.seq
                         info_list.SessionId = self.sessid
-                        higherTransport = MyTransport(self.transport)
-                        higherTransport.setinfo(info_list)
-                        self.higherProtocol().connection_made(higherTransport)
-
+                        info_list.init_seq = self.seq
+                        self.higherTransport = MyTransport(self.transport)
+                        self.higherTransport.setinfo(info_list)
+                        self.higherProtocol().connection_made(self.higherTransport)
+                        break
                         # if pkt.Type == 3:
                         #     RIP_ACK = PEEPPacket()
                         #     RIP_ACK.Type = 4
@@ -175,13 +197,28 @@ class PassThroughs2(StackingProtocol):
                         #     print("server: RIP-ACK sent")
                         #     self.transport.write(RIP_ACK.__serialize__())
 
-            if self.handshake == True:
+            # client and server should be the same, start from here
+            if self.handshake:
                 if pkt.Type == 5:
                     if verify_packet(pkt, self.sessid):
                         print("verify_packet from server")
-                        Ackpacket = generate_ACK(self.seq, pkt.SequenceNumber+1)
+                        Ackpacket = generate_ACK(self.seq, pkt.SequenceNumber + packet_size)
                         self.higherProtocol().data_received(pkt.Data)
                         self.transport.write(Ackpacket.__serialize__())
+                if pkt.Type == 2:
+                    self.ack_counter = self.ack_counter + 1
+                    # print(self.ack_counter)
+                    # print("I got an ACK")
+
+                    if self.ack_counter == window_size and pkt.Acknowledgement < len(info_list.file_data):
+                        # print("next round")
+                        self.ack_counter = 0
+
+                        w_p = (pkt.Acknowledgement - info_list.init_seq) / packet_size
+                        # print("this is wp: " + str(w_p))
+                        info_list.w_p = int(w_p)
+                        info_list.sequenceNumber = pkt.Acknowledgement
+                        self.higherTransport.write(info_list.file_data)
 
     def connection_lost(self, exc):
         self.higherProtocol().connection_lost()
@@ -204,6 +241,7 @@ def generate_ACK(seq_number, ack_number):
     ACK.Type = 2
     ACK.SequenceNumber = seq_number
     ACK.Acknowledgement = ack_number
+    # print("this is my ack number " + str(ack_number))
     ACK.calculateChecksum()
     return ACK
 

@@ -1,29 +1,47 @@
 from playground.network.common import *
 from mypacket import *
 
+packet_size = 5
+window_size = 3
+
 
 class item_list():
     sequenceNumber = 0
     SessionId = ''
     Acknowledgement = 0
-    #packet_number = 0
+    init_seq = 0
+    file_data = ''
+    w_p = 0
+
 
 class MyTransport(StackingTransport):
-
     def setinfo(self, info_list):
         self.info_list = info_list
 
+        # self.info_list.w_p->which packet to sent, the packet number
+
     def write(self, data):  # this will be the data from the upper layer
+
+        if self.info_list.w_p < 5:
+            self.info_list.file_data = data
+
         small_packet = PEEPPacket()
-        for n in range(0, int(len(data) / 5) + 1):
-            if (n + 1) * 5 < len(data):
-                packet_data = data[n * 5: (n + 1) * 5]
+        for n in range(0, window_size):
+            temp = self.info_list.w_p + n
+            if (self.info_list.w_p + 1) * packet_size < len(data):
+                packet_data = data[temp * packet_size:(temp + 1) * packet_size]
             else:
-                packet_data = data[n * 5:]
+                packet_data = data[temp * packet_size:]
+                n = 999
+
             small_packet.Type = 5  # data packet
             small_packet.Data = bytes(packet_data, 'utf-8')
             small_packet.SessionId = self.info_list.SessionId
-            small_packet.SequenceNumber = self.info_list.sequenceNumber
+            small_packet.SequenceNumber = self.info_list.sequenceNumber + (temp - self.info_list.w_p) * packet_size
             small_packet.Checksum = small_packet.calculateChecksum()
             self.lowerTransport().write(small_packet.__serialize__())
-            # print("wow, this is the new write method")
+            if n > window_size:
+                break
+
+    def get_data(self):
+        return self.info_list.data
