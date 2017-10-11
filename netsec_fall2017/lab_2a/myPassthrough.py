@@ -59,6 +59,8 @@ class PassThroughc2(StackingProtocol):
         self.state = 0
         self.sessid = ''
         self.ack_counter = 0
+        self.expected_packet = 0
+        self.expected_ack = 0
 
     def connection_made(self, transport):
         self.transport = transport
@@ -94,8 +96,10 @@ class PassThroughc2(StackingProtocol):
                         print("------------------------------")
                         print("upper level start here")
                         # setup the info_list for this protocal
+                        self.expected_packet = pkt.SequenceNumber
+                        self.expected_ack = pkt.SequenceNumber + packet_size
 
-
+                        # setup stuff for data transfer
                         info_list.sequenceNumber = self.seq
                         info_list.SessionId = self.sessid
                         info_list.init_seq = self.seq
@@ -113,25 +117,33 @@ class PassThroughc2(StackingProtocol):
             # client and server should be the same, start from here
             if self.handshake:
                 if pkt.Type == 5:
-                    if verify_packet(pkt, self.sessid):
+                    if verify_packet(pkt, self.sessid, self.expected_packet):
                         # print("verify_packet from client")
-
-                        Ackpacket = generate_ACK(self.seq, pkt.SequenceNumber + packet_size)
+                        self.expected_packet = self.expected_packet + window_size
+                        Ackpacket = generate_ACK(self.seq, pkt.SequenceNumber + len(pkt.Data), self.sessid)
                         self.higherProtocol().data_received(pkt.Data)
                         self.transport.write(Ackpacket.__serialize__())
                 if pkt.Type == 2:
                     self.ack_counter = self.ack_counter + 1
                     # print(self.ack_counter)
                     # print("I got an ACK")
+                    print(pkt.Acknowledgement)
 
-                    if self.ack_counter == window_size and pkt.Acknowledgement < len(info_list.file_data):
+                    if self.ack_counter == window_size and pkt.Acknowledgement <= len(info_list.file_data) + self.seq:
                         print("next round")
                         self.ack_counter = 0
+
                         w_p = (pkt.Acknowledgement - info_list.init_seq) / packet_size
                         print("this is wp: " + str(w_p))
                         info_list.w_p = int(w_p)
                         info_list.sequenceNumber = pkt.Acknowledgement
                         self.higherTransport.write(info_list.file_data)
+
+                    if pkt.Acknowledgement == len(info_list.file_data) + self.seq:
+                        self.seq = pkt.Acknowledgement
+                        info_list.w_p = 0
+                        self.ack_counter = 0
+                        self.higherProtocol().data_received("Readyx#1")
 
     def connection_lost(self, exc):
         self.higherProtocol().connection_lost()
@@ -152,6 +164,8 @@ class PassThroughs2(StackingProtocol):
         self.state = 0
         self.sessid = ''
         self.ack_counter = 0
+        self.expected_packet = 0
+        self.expected_ack = 0
 
     def connection_made(self, transport):
         self.transport = transport
@@ -181,8 +195,10 @@ class PassThroughs2(StackingProtocol):
                         print("------------------------------")
                         print("upper level start here")
                         # setup the info_list for this protocal
+                        self.expected_packet = pkt.SequenceNumber
+                        self.expected_ack = pkt.SequenceNumber + packet_size
 
-
+                        # setup stuff for data transfer
                         info_list.sequenceNumber = self.seq
                         info_list.SessionId = self.sessid
                         info_list.init_seq = self.seq
@@ -200,32 +216,42 @@ class PassThroughs2(StackingProtocol):
             # client and server should be the same, start from here
             if self.handshake:
                 if pkt.Type == 5:
-                    if verify_packet(pkt, self.sessid):
-                        print("verify_packet from server")
-                        Ackpacket = generate_ACK(self.seq, pkt.SequenceNumber + packet_size)
+                    if verify_packet(pkt, self.sessid, self.expected_packet):
+                        # print("verify_packet from server")
+                        self.expected_packet = self.expected_packet + packet_size
+                        print(pkt.SequenceNumber)
+                        Ackpacket = generate_ACK(self.seq, pkt.SequenceNumber + len(pkt.Data), self.sessid)
                         self.higherProtocol().data_received(pkt.Data)
                         self.transport.write(Ackpacket.__serialize__())
                 if pkt.Type == 2:
                     self.ack_counter = self.ack_counter + 1
                     # print(self.ack_counter)
                     # print("I got an ACK")
+                    print(pkt.Acknowledgement)
 
-                    if self.ack_counter == window_size and pkt.Acknowledgement < len(info_list.file_data):
-                        # print("next round")
+                    if self.ack_counter == window_size and pkt.Acknowledgement <= len(
+                            info_list.file_data) + self.seq:
+                        print("next round")
                         self.ack_counter = 0
 
                         w_p = (pkt.Acknowledgement - info_list.init_seq) / packet_size
-                        # print("this is wp: " + str(w_p))
+                        print("this is wp: " + str(w_p))
                         info_list.w_p = int(w_p)
                         info_list.sequenceNumber = pkt.Acknowledgement
                         self.higherTransport.write(info_list.file_data)
+
+                    if pkt.Acknowledgement == len(info_list.file_data) + self.seq:
+                        self.seq = pkt.Acknowledgement
+                        info_list.w_p = 0
+                        self.ack_counter = 0
+                        self.higherProtocol().data_received("Readyx#1")
 
     def connection_lost(self, exc):
         self.higherProtocol().connection_lost()
         self.transport = None
 
 
-def verify_packet(packet, id):
+def verify_packet(packet, id, expected_packet):
     goodpacket = True
     if packet.verifyChecksum() == False:
         print("wrong checksum")
@@ -233,14 +259,19 @@ def verify_packet(packet, id):
     if packet.SessionId != id:
         print("wrong session ID")
         goodpacket = False
+    if window_size < (expected_packet - packet.SequenceNumber):
+        print("wrong packet seq number")
+        goodpacket = False
+
     return goodpacket
 
 
-def generate_ACK(seq_number, ack_number):
+def generate_ACK(seq_number, ack_number, id):
     ACK = PEEPPacket()
     ACK.Type = 2
     ACK.SequenceNumber = seq_number
     ACK.Acknowledgement = ack_number
+    ACK.SessionId = id
     # print("this is my ack number " + str(ack_number))
     ACK.calculateChecksum()
     return ACK

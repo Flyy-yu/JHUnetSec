@@ -11,7 +11,7 @@ class MyProtocolClient(asyncio.Protocol):
         self.loop = loop
         self.transport = None
         self._deserializer = PacketType.Deserializer()
-
+        self.task = 1
     def connection_made(self, transport):
         self.transport = transport
         # requestPkt = RequestToConnect()
@@ -22,6 +22,13 @@ class MyProtocolClient(asyncio.Protocol):
     def data_received(self, data):
 
         print(data)
+
+        if data == "Readyx#1" and self.task>0:
+            print("ready for nextone")
+            self.task = 0
+
+            self.transport.write("the second message comes!!")
+
 
         # self._deserializer.update(data)
         # for pkt in self._deserializer.nextPackets():
@@ -61,6 +68,11 @@ class MyProtocolServer(asyncio.Protocol):
 
         print(data)
 
+        if data == "Readyx#1" and self.task>0:
+            print("ready for nextone")
+            self.task = 0
+
+            self.transport.write("the second message comes!!")
         # self._deserializer.update(data)
         # for pkt in self._deserializer.nextPackets():
         #     if isinstance(pkt, RequestToConnect):
