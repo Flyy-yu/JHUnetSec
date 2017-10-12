@@ -24,24 +24,25 @@ class MyTransport(StackingTransport):
         self.info_list.w_p = 0
 
     def write(self, data):  # this will be the data from the upper layer
+        print("my data length: "+str(len(data)))
 
-        if self.info_list.w_p < 5:
-            self.info_list.file_data = data
-
+        self.info_list.file_data = data
         small_packet = PEEPPacket()
         for n in range(0, window_size):
-            temp = self.info_list.w_p + n
-            if (self.info_list.w_p + 1) * packet_size < len(data):
-                packet_data = data[temp * packet_size:(temp + 1) * packet_size]
-                small_packet.SequenceNumber = self.info_list.sequenceNumber + n * packet_size
+            front = self.info_list.sequenceNumber - self.info_list.init_seq
+
+            if front + packet_size <= len(data):
+                packet_data = data[front:front + packet_size]
+                small_packet.SequenceNumber = self.info_list.sequenceNumber
+                self.info_list.sequenceNumber += len(packet_data)
             else:
-                packet_data = data[temp * packet_size:]
-                small_packet.SequenceNumber = self.info_list.sequenceNumber + n * packet_size
+                packet_data = data[front:]
+                small_packet.SequenceNumber = self.info_list.sequenceNumber
+                self.info_list.sequenceNumber += len(packet_data)
                 n = 999
-                self.info_list.init_seq += self.info_list.sequenceNumber + (len(data) - temp * packet_size)
-                self.info_list.sequenceNumber = self.info_list.init_seq
+
             small_packet.Type = 5  # data packet
-            small_packet.Data = bytes(packet_data, 'utf-8')
+            small_packet.Data = packet_data
             small_packet.SessionId = self.info_list.SessionId
             small_packet.Checksum = small_packet.calculateChecksum()
             self.lowerTransport().write(small_packet.__serialize__())
