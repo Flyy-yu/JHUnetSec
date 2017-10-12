@@ -2,10 +2,11 @@ import time
 from MyProtocolTransport import *
 import logging
 
+
 # logging.getLogger().setLevel(logging.NOTSET)  # this logs *everything*
 # logging.getLogger().addHandler(logging.StreamHandler())  # logs to stderr
 
-info_list = item_list()
+
 
 
 class PassThroughc1(StackingProtocol):
@@ -62,6 +63,7 @@ class PassThroughc2(StackingProtocol):
         self.expected_packet = 0
         self.expected_ack = 0
         self.databuffer = ''
+        self.info_list = item_list()
 
     def connection_made(self, transport):
         self.transport = transport
@@ -96,16 +98,16 @@ class PassThroughc2(StackingProtocol):
                         print("ACK sent, handshake done")
                         print("------------------------------")
                         print("upper level start here")
-                        # setup the info_list for this protocal
+                        # setup the self.info_list for this protocal
                         self.expected_packet = pkt.SequenceNumber
                         self.expected_ack = pkt.SequenceNumber + packet_size
 
                         # setup stuff for data transfer
-                        info_list.sequenceNumber = self.seq
-                        info_list.SessionId = self.sessid
-                        info_list.init_seq = self.seq
+                        self.info_list.sequenceNumber = self.seq
+                        self.info_list.SessionId = self.sessid
+                        self.info_list.init_seq = self.seq
                         self.higherTransport = MyTransport(self.transport)
-                        self.higherTransport.setinfo(info_list)
+                        self.higherTransport.setinfo(self.info_list)
                         self.higherProtocol().connection_made(self.higherTransport)
 
                         # if pkt.Type == 3:
@@ -119,32 +121,37 @@ class PassThroughc2(StackingProtocol):
             if self.handshake:
                 if pkt.Type == 5:
                     if verify_packet(pkt, self.sessid, self.expected_packet):
-                        #print("verify_packet from server")
+                        # print("verify_packet from server")
                         self.expected_packet = self.expected_packet + len(pkt.Data)
-                        print( "seq number:" + str(pkt.SequenceNumber))
-                        print(len(pkt.Data))
+                        # print( "seq number:" + str(pkt.SequenceNumber))
                         Ackpacket = generate_ACK(self.seq, pkt.SequenceNumber + len(pkt.Data), self.sessid)
-                        self.higherProtocol().data_received(pkt.Data)
                         self.transport.write(Ackpacket.__serialize__())
+                        self.higherProtocol().data_received(pkt.Data)
+
                 if pkt.Type == 2:
                     if verify_ack(pkt, self.sessid):
+
                         self.ack_counter = self.ack_counter + 1
                         # print(self.ack_counter)
                         # print("I got an ACK")
                         # print(pkt.Acknowledgement)
+                        # print("ack number:" + str(pkt.Acknowledgement))
 
                         if self.ack_counter == window_size and pkt.Acknowledgement < len(
-                                info_list.file_data) + self.seq:
-                            print("next round")
+                                self.info_list.file_data) + self.seq:
+                            # print("next round")
                             self.ack_counter = 0
-                            info_list.sequenceNumber = pkt.Acknowledgement
-                            self.higherTransport.write(info_list.file_data)
+                            self.info_list.sequenceNumber = pkt.Acknowledgement
+                            if pkt.Acknowledgement < self.info_list.init_seq + len(self.info_list.file_data):
+                                self.higherTransport.write(self.info_list.file_data)
 
-                        if pkt.Acknowledgement == len(info_list.file_data) + self.seq:
+                        if pkt.Acknowledgement == len(self.info_list.file_data) + self.seq:
                             self.seq = pkt.Acknowledgement
                             self.ack_counter = 0
-                            info_list.init_seq = self.seq
-
+                            self.info_list.init_seq = self.seq
+                            self.info_list.sequenceNumber = self.info_list.init_seq
+                            self.higherTransport.setinfo(self.info_list)
+                            #print("done")
 
     def connection_lost(self, exc):
         self.higherProtocol().connection_lost()
@@ -167,6 +174,7 @@ class PassThroughs2(StackingProtocol):
         self.ack_counter = 0
         self.expected_packet = 0
         self.expected_ack = 0
+        self.info_list = item_list()
 
     def connection_made(self, transport):
         self.transport = transport
@@ -195,16 +203,17 @@ class PassThroughs2(StackingProtocol):
                         print("got ACK, handshake done")
                         print("------------------------------")
                         print("upper level start here")
-                        # setup the info_list for this protocal
+                        # setup the self.info_list for this protocal
                         self.expected_packet = pkt.SequenceNumber
                         self.expected_ack = pkt.SequenceNumber + packet_size
 
                         # setup stuff for data transfer
-                        info_list.sequenceNumber = self.seq
-                        info_list.SessionId = self.sessid
-                        info_list.init_seq = self.seq
+                        self.info_list.sequenceNumber = self.seq
+                        self.info_list.SessionId = self.sessid
+                        self.info_list.init_seq = self.seq
+
                         self.higherTransport = MyTransport(self.transport)
-                        self.higherTransport.setinfo(info_list)
+                        self.higherTransport.setinfo(self.info_list)
                         self.higherProtocol().connection_made(self.higherTransport)
                         break
                         # if pkt.Type == 3:
@@ -218,29 +227,34 @@ class PassThroughs2(StackingProtocol):
             if self.handshake:
                 if pkt.Type == 5:
                     if verify_packet(pkt, self.sessid, self.expected_packet):
-                        #print("verify_packet from server")
+                        # print("verify_packet from server")
                         self.expected_packet = self.expected_packet + len(pkt.Data)
-
                         Ackpacket = generate_ACK(self.seq, pkt.SequenceNumber + len(pkt.Data), self.sessid)
-
-                        self.higherProtocol().data_received(pkt.Data)
+                        # print("seq number:" + str(pkt.SequenceNumber))
                         self.transport.write(Ackpacket.__serialize__())
+                        self.higherProtocol().data_received(pkt.Data)
+
                 if pkt.Type == 2:
                     self.ack_counter = self.ack_counter + 1
                     # print(self.ack_counter)
                     # print("I got an ACK")
-                    print("ack number:"+ str( pkt.Acknowledgement))
+                    # print("ack number:" + str(pkt.Acknowledgement))
 
-                    if self.ack_counter == window_size and pkt.Acknowledgement <= len(info_list.file_data) + self.seq:
-                        print("next round")
+                    if self.ack_counter == window_size and pkt.Acknowledgement <= len(
+                            self.info_list.file_data) + self.seq:
+                        #print("next round")
                         self.ack_counter = 0
-                        info_list.sequenceNumber = pkt.Acknowledgement
-                        self.higherTransport.write(info_list.file_data)
+                        self.info_list.sequenceNumber = pkt.Acknowledgement
+                        if pkt.Acknowledgement < self.info_list.init_seq + len(self.info_list.file_data):
+                            self.higherTransport.write(self.info_list.file_data)
 
-                    if pkt.Acknowledgement == len(info_list.file_data) + self.seq:
+                    if pkt.Acknowledgement == len(self.info_list.file_data) + self.seq:
                         self.seq = pkt.Acknowledgement
                         self.ack_counter = 0
-                        info_list.init_seq = self.seq
+                        self.info_list.init_seq = self.seq
+                        self.info_list.sequenceNumber = self.info_list.init_seq
+                        self.higherTransport.setinfo(self.info_list)
+                        #print("done")
 
     def connection_lost(self, exc):
         self.higherProtocol().connection_lost()
