@@ -1,8 +1,7 @@
 import playground
 import random
 import sys, time, os, logging, asyncio
-from myPassthrough import *
-
+from .myPassthrough import *
 
 # this is the client
 class MyProtocolClient(asyncio.Protocol):
@@ -10,7 +9,7 @@ class MyProtocolClient(asyncio.Protocol):
         self.name = name
         self.loop = loop
         self.transport = None
-        self._deserializer = PacketType.Deserializer()
+        self._deserializer = PEEPPacket.Deserializer()
         self.task = 1
 
     def connection_made(self, transport):
@@ -51,7 +50,7 @@ class MyProtocolServer(asyncio.Protocol):
     def __init__(self):
         self.ConnectionDict = {}
         self.transport = None
-        self._deserializer = PacketType.Deserializer()
+        self._deserializer = PEEPPacket.Deserializer()
 
     def connection_made(self, transport):
         print("Received a connection from {}".format(transport.get_extra_info("peername")))

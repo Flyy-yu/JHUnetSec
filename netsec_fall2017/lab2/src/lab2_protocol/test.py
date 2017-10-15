@@ -1,17 +1,11 @@
-import playground
-import sys
-import asyncio
+from .lab2a import *
 
-from lab2a import MyProtocolClient, MyProtocolServer
-
-import lab2a
 
 con = playground.Connector(protocolStack=(
-    lab2a.PeepClientFactory(),
-    lab2a.PeepServerFactory()))
+    PeepClientFactory(),
+    PeepServerFactory()))
 
 playground.setConnector("lab2", con)
-playground.setConnector("peep", con)
 
 echoArgs = {}
 

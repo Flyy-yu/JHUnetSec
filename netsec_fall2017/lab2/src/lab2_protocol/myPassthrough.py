@@ -1,5 +1,5 @@
 import time
-from MyProtocolTransport import *
+from .MyProtocolTransport import *
 import logging
 
 
