@@ -1,7 +1,7 @@
 from playground.network.common import *
 from .mypacket import *
 
-packet_size = 5
+packet_size = 10
 window_size = 3
 
 
@@ -19,8 +19,6 @@ class MyTransport(StackingTransport):
         self.info_list = info_list
 
     def write(self, data):  # this will be the data from the upper layer
-
-
         self.info_list.file_data = data
         small_packet = PEEPPacket()
         for n in range(0, window_size):
@@ -35,7 +33,6 @@ class MyTransport(StackingTransport):
                 small_packet.SequenceNumber = self.info_list.sequenceNumber
                 self.info_list.sequenceNumber += len(packet_data)
             else:
-
                 packet_data = data[front:]
                 small_packet.SequenceNumber = self.info_list.sequenceNumber
                 n = 999

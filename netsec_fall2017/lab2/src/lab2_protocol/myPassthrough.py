@@ -269,7 +269,7 @@ def verify_packet(packet, id, expected_packet):
     if expected_packet != packet.SequenceNumber:
         print("wrong packet seq number")
         goodpacket = False
-    return True
+    return goodpacket
 
 
 def verify_ack(packet, id):
@@ -280,7 +280,7 @@ def verify_ack(packet, id):
     # if packet.SessionId != id:
     #     print("wrong session ID")
     #     goodpacket = False
-    return True
+    return goodpacket
 
 
 def generate_ACK(seq_number, ack_number, id):
