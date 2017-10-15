@@ -3,6 +3,7 @@ import random
 import sys, time, os, logging, asyncio
 from .myPassthrough import *
 
+
 # this is the client
 class MyProtocolClient(asyncio.Protocol):
     def __init__(self, name, loop):
@@ -55,10 +56,12 @@ class MyProtocolServer(asyncio.Protocol):
         self.transport = transport
 
     def data_received(self, data):
+
         self._deserializer.update(data)
         for pkt in self._deserializer.nextPackets():
             if isinstance(pkt, RequestToConnect):
                 print(pkt.DEFINITION_IDENTIFIER)
+                print("got RequestToConnect")
                 NameRequestpkt = NameRequest()
                 outID = random.randint(100000, 999999)
                 self.ConnectionDict[outID] = ""
@@ -83,6 +86,7 @@ class MyProtocolServer(asyncio.Protocol):
 
     def connection_lost(self, exc):
         self.transport = None
+
 
 #
 
