@@ -1,7 +1,7 @@
 from playground.network.common import *
 from .mypacket import *
 
-packet_size = 500
+packet_size = 1024
 window_size = 3
 
 
@@ -17,8 +17,6 @@ class item_list():
 class MyTransport(StackingTransport):
     def setinfo(self, info_list):
         self.info_list = info_list
-
-        # self.info_list.w_p->which packet to sent, the packet number
 
     def write(self, data):  # this will be the data from the upper layer
 
@@ -44,11 +42,14 @@ class MyTransport(StackingTransport):
 
             small_packet.Type = 5  # data packet
             small_packet.Data = packet_data
-            small_packet.SessionId = self.info_list.SessionId
+            #small_packet.SessionId = self.info_list.SessionId
             small_packet.Checksum = small_packet.calculateChecksum()
             self.lowerTransport().write(small_packet.__serialize__())
             if n > window_size:
                 break
 
-    def get_data(self):
-        return self.info_list.data
+    #
+
+
+def get_data(self):
+    return self.info_list.data

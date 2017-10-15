@@ -1,12 +1,6 @@
 from .lab2a import *
 
 
-con = playground.Connector(protocolStack=(
-    PeepClientFactory(),
-    PeepServerFactory()))
-
-playground.setConnector("lab2", con)
-
 echoArgs = {}
 
 args = sys.argv[1:]
@@ -27,7 +21,7 @@ loop = asyncio.get_event_loop()
 loop.set_debug(enabled=True)
 
 if mode.lower() == "server":
-    coro = playground.getConnector('lab2').create_playground_server(lambda: MyProtocolServer(), 101)
+    coro = playground.getConnector('lab2_protocol').create_playground_server(lambda: MyProtocolServer(), 101)
     server = loop.run_until_complete(coro)
     print("my Server Started at {}".format(server.sockets[0].gethostname()))
     loop.run_forever()
@@ -36,7 +30,7 @@ if mode.lower() == "server":
 
 else:
     address = mode
-    coro = playground.getConnector('lab2').create_playground_connection(
+    coro = playground.getConnector('lab2_protocol').create_playground_connection(
         lambda: MyProtocolClient("hello", loop),
         address, 101)
     loop.run_until_complete(coro)

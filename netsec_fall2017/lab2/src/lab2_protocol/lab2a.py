@@ -9,7 +9,7 @@ class MyProtocolClient(asyncio.Protocol):
         self.name = name
         self.loop = loop
         self.transport = None
-        self._deserializer = PEEPPacket.Deserializer()
+        self._deserializer = PacketType.Deserializer()
         self.task = 1
 
     def connection_made(self, transport):
@@ -18,8 +18,6 @@ class MyProtocolClient(asyncio.Protocol):
         requestpktB = requestPkt.__serialize__()
         print("client: RequestToConnect sent")
         self.transport.write(requestpktB)
-
-
 
     def data_received(self, data):
         self._deserializer.update(data)
@@ -50,7 +48,7 @@ class MyProtocolServer(asyncio.Protocol):
     def __init__(self):
         self.ConnectionDict = {}
         self.transport = None
-        self._deserializer = PEEPPacket.Deserializer()
+        self._deserializer = PacketType.Deserializer()
 
     def connection_made(self, transport):
         print("Received a connection from {}".format(transport.get_extra_info("peername")))
@@ -85,7 +83,6 @@ class MyProtocolServer(asyncio.Protocol):
 
     def connection_lost(self, exc):
         self.transport = None
-
 
 #
 

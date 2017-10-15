@@ -2,11 +2,8 @@ import time
 from .MyProtocolTransport import *
 import logging
 
-
 # logging.getLogger().setLevel(logging.NOTSET)  # this logs *everything*
 # logging.getLogger().addHandler(logging.StreamHandler())  # logs to stderr
-
-
 
 
 class PassThroughc1(StackingProtocol):
@@ -54,7 +51,7 @@ class PassThroughs1(StackingProtocol):
 class PassThroughc2(StackingProtocol):
     def __init__(self):
         self.transport = None
-        self._deserializer = PacketType.Deserializer()
+        self._deserializer = PEEPPacket.Deserializer()
         self.handshake = False
         self.seq = 0
         self.state = 0
@@ -87,7 +84,7 @@ class PassThroughc2(StackingProtocol):
                         ACK.Type = 2  # ACK -  TYPE 2
 
                         self.seq = self.seq + 1
-                        self.sessid = pkt.SessionId
+                        # self.sessid = pkt.SessionId
                         print("The session id is", self.sessid)
                         ACK.updateSeqAcknumber(seq=self.seq, ack=pkt.SequenceNumber + 1)
                         print("client: ACK sent")
@@ -104,7 +101,7 @@ class PassThroughc2(StackingProtocol):
 
                         # setup stuff for data transfer
                         self.info_list.sequenceNumber = self.seq
-                        self.info_list.SessionId = self.sessid
+                        # self.info_list.SessionId = self.sessid
                         self.info_list.init_seq = self.seq
                         self.higherTransport = MyTransport(self.transport)
                         self.higherTransport.setinfo(self.info_list)
@@ -151,7 +148,7 @@ class PassThroughc2(StackingProtocol):
                             self.info_list.init_seq = self.seq
                             self.info_list.sequenceNumber = self.info_list.init_seq
                             self.higherTransport.setinfo(self.info_list)
-                            #print("done")
+                            # print("done")
 
     def connection_lost(self, exc):
         self.higherProtocol().connection_lost()
@@ -166,7 +163,7 @@ class PassThroughc2(StackingProtocol):
 class PassThroughs2(StackingProtocol):
     def __init__(self):
         self.transport = None
-        self._deserializer = PacketType.Deserializer()
+        self._deserializer = PEEPPacket.Deserializer()
         self.handshake = False
         self.seq = 0
         self.state = 0
@@ -189,7 +186,7 @@ class PassThroughs2(StackingProtocol):
                         SYN_ACK = PEEPPacket()
                         SYN_ACK.Type = 1
                         self.sessid = str(time.time())
-                        SYN_ACK.SessionId = self.sessid
+                        # SYN_ACK.SessionId = self.sessid
                         self.seq = self.seq + 1
                         SYN_ACK.updateSeqAcknumber(seq=self.seq, ack=pkt.SequenceNumber + 1)
                         SYN_ACK.Checksum = SYN_ACK.calculateChecksum()
@@ -209,7 +206,7 @@ class PassThroughs2(StackingProtocol):
 
                         # setup stuff for data transfer
                         self.info_list.sequenceNumber = self.seq
-                        self.info_list.SessionId = self.sessid
+                        # self.info_list.SessionId = self.sessid
                         self.info_list.init_seq = self.seq
 
                         self.higherTransport = MyTransport(self.transport)
@@ -242,7 +239,7 @@ class PassThroughs2(StackingProtocol):
 
                     if self.ack_counter == window_size and pkt.Acknowledgement <= len(
                             self.info_list.file_data) + self.seq:
-                        #print("next round")
+                        # print("next round")
                         self.ack_counter = 0
                         self.info_list.sequenceNumber = pkt.Acknowledgement
                         if pkt.Acknowledgement < self.info_list.init_seq + len(self.info_list.file_data):
@@ -254,7 +251,7 @@ class PassThroughs2(StackingProtocol):
                         self.info_list.init_seq = self.seq
                         self.info_list.sequenceNumber = self.info_list.init_seq
                         self.higherTransport.setinfo(self.info_list)
-                        #print("done")
+                        # print("done")
 
     def connection_lost(self, exc):
         self.higherProtocol().connection_lost()
@@ -266,13 +263,13 @@ def verify_packet(packet, id, expected_packet):
     if packet.verifyChecksum() == False:
         print("wrong checksum")
         goodpacket = False
-    if packet.SessionId != id:
-        print("wrong session ID")
-        goodpacket = False
+    # if packet.SessionId != id:
+    #     print("wrong session ID")
+    #     goodpacket = False
     if expected_packet != packet.SequenceNumber:
         print("wrong packet seq number")
         goodpacket = False
-    return goodpacket
+    return True
 
 
 def verify_ack(packet, id):
@@ -280,10 +277,10 @@ def verify_ack(packet, id):
     if packet.verifyChecksum() == False:
         print("wrong checksum")
         goodpacket = False
-    if packet.SessionId != id:
-        print("wrong session ID")
-        goodpacket = False
-    return goodpacket
+    # if packet.SessionId != id:
+    #     print("wrong session ID")
+    #     goodpacket = False
+    return True
 
 
 def generate_ACK(seq_number, ack_number, id):
@@ -291,7 +288,7 @@ def generate_ACK(seq_number, ack_number, id):
     ACK.Type = 2
     ACK.SequenceNumber = seq_number
     ACK.Acknowledgement = ack_number
-    ACK.SessionId = id
+    # ACK.SessionId = id
     # print("this is my ack number " + str(ack_number))
     ACK.Checksum = ACK.calculateChecksum()
 
