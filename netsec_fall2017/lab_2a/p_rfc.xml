@@ -1,0 +1,334 @@
+<?xml version="1.0" encoding="US-ASCII"?>
+<!-- This template is modified by Seth Nielson for creating P-RFC's
+    (Playground-RFC's). -->
+<!-- This template is for creating an Internet Draft using xml2rfc,
+    which is available here: http://xml2rfc.ietf.org. -->
+<!DOCTYPE rfc SYSTEM "rfc2629.dtd" [
+
+<!-- One method to get references from the online citation libraries.
+    There has to be one entity for each item to be referenced. 
+    An alternate method (rfc include) is described in the references. -->
+<!ENTITY RFC2119 SYSTEM "http://xml2rfc.tools.ietf.org/public/rfc/bibxml/reference.RFC.2119.xml">
+<!ENTITY RFC2360 SYSTEM "http://xml2rfc.tools.ietf.org/public/rfc/bibxml/reference.RFC.2360.xml">
+<!ENTITY RFC2629 SYSTEM "http://xml2rfc.tools.ietf.org/public/rfc/bibxml/reference.RFC.2629.xml">
+<!ENTITY RFC3552 SYSTEM "http://xml2rfc.tools.ietf.org/public/rfc/bibxml/reference.RFC.3552.xml">
+<!ENTITY RFC5226 SYSTEM "http://xml2rfc.tools.ietf.org/public/rfc/bibxml/reference.RFC.5226.xml">
+]>
+<?xml-stylesheet type='text/xsl' href='rfc2629.xslt' ?>
+<!-- used by XSLT processors -->
+<!-- For a complete list and description of processing instructions (PIs), 
+    please see http://xml2rfc.ietf.org/authoring/README.html. -->
+<!-- Below are generally applicable Processing Instructions (PIs) that most I-Ds might want to use.
+    (Here they are set differently than their defaults in xml2rfc v1.32) -->
+<?rfc strict="yes" ?>
+<!-- give errors regarding ID-nits and DTD validation -->
+<!-- control the table of contents (ToC) -->
+<?rfc toc="yes"?>
+<!-- generate a ToC -->
+<?rfc tocdepth="4"?>
+<!-- the number of levels of subsections in ToC. default: 3 -->
+<!-- control references -->
+<?rfc symrefs="yes"?>
+<!-- use symbolic references tags, i.e, [RFC2119] instead of [1] -->
+<?rfc sortrefs="yes" ?>
+<!-- sort the reference entries alphabetically -->
+<!-- control vertical white space 
+    (using these PIs as follows is recommended by the RFC Editor) -->
+<?rfc compact="yes" ?>
+<!-- do not start each main section on a new page -->
+<?rfc subcompact="no" ?>
+<!-- keep one blank line between list items -->
+<!-- end of list of popular I-D processing instructions -->
+<rfc category="std" docName="rfc1" ipr="playgroundStd_v1_0" number="1">
+  <!-- category values: std, bcp, info, exp, and historic
+    ipr values: trust200902, noModificationTrust200902, noDerivativesTrust200902,
+       or pre5378Trust200902, playgroundWinter201501
+    you can add the attributes updates="NNNN" and obsoletes="NNNN" 
+    they will automatically be output with "(if approved)" -->
+  <!-- ***** FRONT MATTER ***** -->
+  <front>
+    <!-- The abbreviated title is used in the page header - it is only necessary if the 
+        full title is longer than 39 characters -->
+    <title abbrev="PRFC's">Playground Request For Comments</title>
+    <!-- add 'role="editor"' below for the editors if appropriate -->
+    <!-- Another author who claims to be an editor -->
+    <author fullname="Peiyu Wang" initials="P.W." role="editor" surname="Wang">
+      <organization>JHU Network Security Fall 2017</organization>
+      <address>
+        <postal>
+          <street>JHU 160 Malone Hall/3400 North Charles St.</street>
+          <!-- Reorder these if your country does things differently -->
+          <city>Baltimore</city>
+          <region>MD</region>
+          <code>21218</code>
+          <country>USA</country>
+        </postal>
+        <phone>+1 443-449-3230</phone>
+        <email>zl@jhu.edu</email>
+        <!-- uri and facsimile elements may also be added -->
+      </address>
+    </author>
+    <date year="2017" />
+    <!-- If the month and year are both specified and are the current ones, xml2rfc will fill 
+        in the current day for you. If only the current year is specified, xml2rfc will fill 
+	 in the current day and month for you. If the year is not the current one, it is 
+	 necessary to specify at least a month (xml2rfc assumes day="1" if not specified for the 
+	 purpose of calculating the expiry date).  With drafts it is normally sufficient to 
+	 specify just the year. -->
+    <!-- Meta-data Declarations -->
+    <area>General</area>
+    <workgroup>Playground Experiment Director</workgroup>
+    <!-- WG name at the upperleft corner of the doc,
+        IETF is fine for individual submissions.  
+	 If this element is not present, the default is "Network Working Group",
+        which is used by the RFC Editor as a nod to the history of the IETF. -->
+    <keyword>PRFC</keyword>
+    <!-- Keywords will be incorporated into HTML output
+        files in a meta tag but they have no effect on text or nroff
+        output. If you submit your draft to the RFC Editor, the
+        keywords will be used for the search engine. -->
+    <abstract>
+      <t>The PEEP Protocol is designed to provide reliable transpiration between hosts in PLAYGROUND (Poly-Localized Algorithmic Yields Generated Remotely on Unused Network Devices) system. The protocol can distinguish the data between two different sessions and ensure that the data arrives.</t>
+    </abstract>
+  </front>
+  <middle>
+    <section title="Introduction">
+      <t>RFC's (Request for Comments) are a publication of the Internet Engineering Task Force (IETF).  RFC's have many purposes including the publication of standards, general information, and best practices.</t>
+      <t>The PRFC documentation describes the functions to be performed by the PEEP protocol, the program that implements it, and its interface to programs or users that require its services. The PEEP protocol works on the transport layer of the network protocol stack. </t>
+      <section title="Requirements Language">
+        <t>The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in <xref target="RFC2119">RFC 2119</xref>.
+        </t>
+      </section>
+      <section title="Motivation">
+        <t>This protocol focuses on reliable transportation in computer network system. This documentation will describe how PEEP provides reliable transportation. The PEEP can ensure that data arrives in order and without duplication up to a "reasonable" error rate.</t>
+        <t>PEEP is based on TCP (Transmission Control Protocol) described in RFC 793. The network stack for PEEP has 4 layers as Figure 1 shows.</t>
+        <figure align="center">
+          <artwork align="left">
+            <![CDATA[        
+                Protocol Layering
+
+              +---------------------+
+              |     Application     |
+              +---------------------+
+              |     PassThrough1    |
+              +---------------------+
+              |     PassThrough2    |
+              +---------------------+
+              | playground network  |
+              +---------------------+
+                     
+                      Figure 1.
+            ]]>
+          </artwork>
+        </figure>
+        <t>PEEP is a session-enabled, connection-oriented, host-to-host reliable protocol designed to provide reliable transportation service for hosts based on PLAYGROUND network. PassThrough1 and PassThrough2 are two transmitters between PLAYGROUND and applications, including the client and server.</t>
+      </section>
+    </section>
+    <section title="Operation">
+      <section title="Basic Data Transfer">
+        <t>PEEP is supposed to enable a continuous stream of octets to transport in the connections between the senders and receivers, which is packaged into segments when transmitting in the network. In the transmissions, users need to be sure that the receivers have obtained the same number of octets in each segment that users have sent. To ensure that all data has been actually transmitted to the receiver, two parameters are defined in PEEP headers, including Checksum and Sequence Number.</t>
+      </section>
+      <section title="Connections">
+        <t>There is no doubt that PEEP has the responsibility of guaranteeing the success of certain information transmission for each data packet. Sockets, ACK and sequence numbers combine a connection together. To start a new communication between the client and server, a connection must be made at first. And the connection will be automatically terminated or closed once the communication is broken or complete in order to release resources.</t>
+      </section>
+      <section title="Reliability">
+        <t>PEEP must guarantee to recover from data that is damaged, lost, duplicated, or delivered out of order by the internet communication system. To ensure that the data is correct, a sequence number is randomly assigned to each octet transported and then an acknowledgement (ACK) would come back from the receivers, so data needs to be retransmitted when the ACK does not come back within a given time. At the receiver, the segment will be discarded if it is not transmitted in the correct order of sequence number. Checksum is defined as the length of each packet, which is used to check the correctness of each segment transported at the receiver and decide whether the segment is discarded.</t>
+      </section>
+      <section title="Flow Control">
+        <t>PEEP is able to control the number of packet sent by the senders, which avoids receivers having enough "window" to handle data. A parameter "window_size" in each ACK packet indicates a range of acceptable sequence numbers when the last segment successfully received. Window_size tells the allowed number of octets that senders can transmit at present.</t>
+      </section>
+    </section>
+    <section title="Header Format">
+      <t>PEEP protocol send data as packets. Each packet follows a same structure and has a same header format, which supply information required in PEEP protocol. Following is the Header format of PEEP packet. 	 
+        <figure align="center">
+          <artwork align="left">
+            <![CDATA[
+              FIELDS = [
+                      ("Type", UINT8),
+                      ("SequenceNumber", UINT32({Optional: True})),
+                      ("Checksum", UINT16({Optional: True})),
+                      ("SessionId",STRING({Optional: True})),
+                      ("Acknowledgement", UINT32({Optional: True})),
+                      ("Data", BUFFER({Optional: True}))
+              ]
+                      
+                      Figure 2.
+          ]]>
+          </artwork>
+          <postamble></postamble>
+        </figure>        
+      </t>
+
+      <t>Type  This field indicate the type of this packet. The meaning of this field's value is below:	 
+        <figure align="center">
+          <artwork align="left">
+            <![CDATA[
+                    # TYPE 0 -    SYN 
+                    # TYPE 1 -    SYN-ACK
+                    # TYPE 2 -    ACK
+                    # TYPE 3 -    RIP
+                    # TYPE 4-     RIP-ACK
+                    # TYPE 5-     DATA
+                        
+                        Figure 3.
+          ]]>
+          </artwork>
+          <postamble></postamble>
+        </figure>      
+      </t>
+      <t>Sequence Number  The sequence number of the first data octet in this segment (except when SYN is present). If SYN is present the sequence number is the initial sequence number (ISN) and the first data octet is ISN+1.</t>
+      <t>Checksum  This field protects the integrity of the packet. The host will calculate a number based on the content of the packet. When another host received the packet, it will check recalculate and compare the checksum to ensure the packet has not been changed.</t>
+      <t>SessionId  SessionId is used to identify different session. It can prevent a connection with wrong SessionId. SessionId is decided in the process of three-way handshake.</t>
+      <t>Acknowledgment Number  Acknowledgment Number ensures the order of packets. If the ACK contains the value of next sequence number the sender of the segment is expecting to receive. Once a connection is established this is always sent.</t>
+      <t>Data  Data field contains those data to be transmitted.</t>
+    </section>
+    <section title="Sequence Number">
+      <t>Every packet transferred on the PEEP protocol must have a sequence number, even for the initialization packet, which is also the connection request from the client. The sequence number in the initialization packet is arbitrary and important as the initial number for the following packets sent from the client. In the period of communication establishment, which is also known as "three-way handshake", on both the client and the server sides, the sequence number increments by 1. In the period of data communication, the sequence number increments by the packet size sent by themselves.</t>
+      <t>That is the reason why PEEP protocol could confirm the package transmission in order. On server side, all packages received from client could be arranged in order by sequence number. What's more, the server should refuse accept the packet not in order and expected. And there is an acknowledge number in PEEP protocol, which implies the expected next sequence number sent from other side. For example, In the period of data communication, while the server receives the packet from client, the server should calculate the sum of sequence number of the packet and the packet size. The sum should be the acknowledge number in the reply packet to client, which also is sequence number of next packet sent from client. With the help of sequence number and acknowledge number, the client could know which packet is received by the server and the next packet to send.</t>
+    </section>
+    <section title="Connection Establish">
+        <t>"Three-way handshake" is the procedure used to establish a connection. Normally, this procedure is initiated by one host and respond by another host. This procedure can also work if two hosts initiate in the same time. The "three-way handshake" can reduce the possibility of a false connection.</t>
+        <t>In PEEP protocol, the connection establishment is complemented by "three-way handshake" by two parties. Define the party that initiates the connection as A and the party that accepts the connection request as B for clear explanation. In "three-way handshake" procedure, A initiates a connection by sending a packet with initial sequence number in header to B and set the packet type as 0 which means this is a connection request package. To accept the connection request, B sends back a packet with acknowledge number which is result of the sequence number of initiation package plus data size and its own sequence number. When A receives package and verifies package type and acknowledge number, A sends the third package to B with acknowledge number, which is the result of sequence number of the second package plus data size of the package. </t>
+        <t>Then "three-way handshake" is finished and the connection is established.</t>
+    </section>
+    <section title="Connection Terminate">
+    <t>When one of the two users want to stop sending data, it will begin the termination of the connection. This process will exchange 4 messages between two users. The user A who want to terminate the connection sends RIP packet to the other user B. 
+    Then B will send an ACK packet and a RIP packet. After A received B's RIP,it will send back an ACK and wait a little time then close its connection. B will close its connection after it received A's Ack.</t>
+    </section>
+
+    <section title="Data Communication">
+    <t>When the communication is established, the data is communicated by the transmission of packets. In PEEP protocol, packets are transmitted and received in order. The client should send out packet with sequence number. The server should send back a corresponding ACK packet to reply. Besides, the server should give a windows size in the ACK packet, which suggests the most segments the server could manage at the moment. In PEEP protocol, every packet sent from client should have ACK reply packet from server, which would delay the process. The windows size is created to fasten the process by setting the most segments could be sent from client without reply packets and handled by server in one time. When the remaining window size is not enough, the server should send the remaining size to the client. The client should stop send packets, when Window size is 0. </t>
+    </section>
+
+    <section title="Interfaces">
+    <t>PEEP is designed to ¬¬communicate between server and client upon the PLAYGROUND. There are 2 interfaces in the protocol: The User/PEEP Interface and the PEEP/lower-level Interface. </t>
+    <t>The User/PEEP Interface is between the application layer and the PEEP layer. The interface designed to send the initial, close, and send signal to the application layer. Those signals aim to initialize the connection, terminate the connection, send and receive data. In the upper layer, application can use "transport.write" to send data and use "_deserializer" to receive data.</t>
+    <t>The PEEP/lower-level Interface is between the PEEP and PLAYGROUND. This interface connects with the other side Transport Interface to perform 3-way Handshake to initialize the connection and also send ACK packet to confirm received data packet. To send data by PLAYGROUND, it can use "transport.write". And it uses "_deserializer" to receive data from PLAYGROUND. </t>
+    </section>
+
+
+    <section title="State Machine">
+        <t>A connection passes through a series of states during its lifetime in PEEP, including LISTEN, SYN-SENT, SYN-RCVD, ESTABLISHED, RIP-WAIT1, RIP-WAIT2, CLOSE-WAIT, CLOSING, LAST-ACK, TIME WAIT and the final state CLOSED. The state CLOSED is very useful because of representing no connection.</t>
+        <t>Closed: Closed state, no connection activity.</t>
+        <t>Listen: Listening state, waiting for the connection to enter.</t>
+        <t>SYN_SENT: A connection request has been sent, waiting for confirmation.</t>
+        <t>SYN_RCVD: A connection request has been received and it is not yet confirmed.</t>
+        <t>ESTABLISHED: Connection has been established and normal data can be transferred.</t>
+        <t>FIN_WAIT1: (active shutdown) A closed request has been sent, waiting for confirmation.</t>
+        <t>FIN_WAIT2: (active shutdown) A closed request has been received, waiting for the other side to close the request.</t>
+        <t>CLOSE_WAIT: (passive shutdown) A closing request has been confirmed.</t>
+        <t>LAST_ACK: (passive shutdown) Wait for the last shutdown to confirm and the connection to terminate.</t>
+        <t>TIMED_WAIT: Wait for both sides to receive the acknowledgement of terminating connection.</t>
+        <t>CLOSING: Both sides close at the same time and wait for confirmation.</t>
+        <figure align="center">
+        <preamble>PCC Packet Header</preamble>
+        <artwork align="left">
+            <![CDATA[
+                            +---------------+
+                            |    CLOSED     |
+                            +----+-----+----+
+                                |     |
+                        SENT INI|     |  RECV INI, SENT INI/ACK
+                                v     v
+
+                            +---------------+
+                            |    LISTEN     |
+                            +----+-----+----+
+                                |     |
+    +------------------+           |     |           +---------------+
+    | INITIATE SENT    | ^---------+     +---------^ | INITIATE RECV |
+    |                  <-----------------------------+               |
+    +----+--------+----+      RECV INI/ACK,SENT ACK  +---+-----------+
+        |        |                                      |
+        |        |                             SENT ACK |
+TERMINATE |        |           +---------------+          |
+        |        +---------> |   CONNECTED   | <--------+
+        |                    +----+-----+----+
+        v                         +     |
+                    SENT TERMINATE    |TERMINATE/ACK
+    +------------------+           +     |           +---------------+
+    |   TERMI|REQ      <-----------+     +---------> |   CLOSE REQ   |
+    +----+-------------+                             +------+--------+
+        |       +-----------------+                        |
+        | RECV ACK                |SENT TERMINATE/ACK      | CLOSE TER
+        v                         |                        v
+                                |
+    +------------------+      +----v----------+      +---------------+
+    |   TERMI REQ A    |      |   CLOSE ACK   |      |  ACK RECV     |
+    +----+-------------+      +-------+-------+      +-------+-------+
+        |                            |                      |
+        |TEMINATE/ACK                v ACK                  v ACK
+        |
+        |                    +---------------+      +---------------+
+        +------------------> |      WAIT     +----> |    CLOSED     |
+                            +---------------+      +---------------+
+                                
+                                Figure 4.
+        ]]>
+        </artwork>
+        <postamble></postamble>
+        </figure>
+    </section>
+
+
+    <section title="Error Handling">
+    <t>PEEP could guarantee the packets received in order and the retransmission of lost packets. Every time the client sends out a packet, the server should send back a confirm packet to tell client the packet has been received. And the packets are sent and received in order by sequence number. If some packets are lost through the transmission, the server should not accept the following packet sent from client with wrong acknowledge number. The client could retransmit the lost packets for not receiving the reply packets from the server. </t>
+    <t>PEEP could guarantee the integrity of package by checksum. The checksum is calculated by Adler-32 algorithms on the bytes in packages. Both the server and the client could calculate the checksum while receive the package and compare the calculation result with the checksum value owned by the package. If the values are the same, it suggests the package is intact. If the values are different, it means there is something wrong happened about the package, for example, some data lost during the transmission or the package is altered by unauthorized third party.</t>
+    </section>
+    
+
+
+
+    <section title="Copyright Information">
+      <t>The PLAYGROUND experiment is still new and has not yet developed a policy that has been reviewed by legal counsel. However, at present, the following text MUST be used in the PRFC's.</t>
+      <t>The copyright notice on the front page of the PRFC should read: "Copyright (c) 2017 SETH JAMES NIELSON. All rights reserved.</t>
+    </section>
+
+
+  </middle>
+  <!--  *****BACK MATTER ***** -->
+  <back>
+    <!-- References split into informative and normative -->
+    <!-- There are 2 ways to insert reference entries from the citation libraries:
+    1. define an ENTITY at the top, and use "ampersand character"RFC2629; here (as shown)
+    2. simply use a PI "less than character"?rfc include="reference.RFC.2119.xml"?> here
+       (for I-Ds: include="reference.I-D.narten-iana-considerations-rfc2434bis.xml")
+
+    Both are cited textually in the same manner: by using xref elements.
+    If you use the PI option, xml2rfc will, by default, try to find included files in the same
+    directory as the including file. You can also define the XML_LIBRARY environment variable
+    with a value containing a set of directories to search.  These can be either in the local
+    filing system or remote ones accessed by http (http://domain/dir/... ).-->
+    <references title="Normative References">
+      <!--?rfc include="http://xml2rfc.ietf.org/public/rfc/bibxml/reference.RFC.2119.xml"?-->     &RFC2119;          &RFC2360;        
+    </references>
+    <!-- Change Log
+
+v00 2006-03-15  EBD   Initial version
+
+v01 2006-04-03  EBD   Moved PI location back to position 1 -
+                     v3.1 of XMLmind is better with them at this location.
+v02 2007-03-07  AH    removed extraneous nested_list attribute,
+                     other minor corrections
+v03 2007-03-09  EBD   Added comments on null IANA sections and fixed heading capitalization.
+                     Modified comments around figure to reflect non-implementation of
+                     figure indent control.  Put in reference using anchor="DOMINATION".
+                     Fixed up the date specification comments to reflect current truth.
+v04 2007-03-09 AH     Major changes: shortened discussion of PIs,
+                     added discussion of rfc include.
+v05 2007-03-10 EBD    Added preamble to C program example to tell about ABNF and alternative 
+                     images. Removed meta-characters from comments (causes problems).
+
+v06 2010-04-01 TT     Changed ipr attribute values to latest ones. Changed date to
+                     year only, to be consistent with the comments. Updated the 
+                     IANA guidelines reference from the I-D to the finished RFC.  
+                     
+SETH NIELSON:
+  Altered for PLAYGROUND AND PRFC's
+  2016-09-21 SJN PRFC 1
+
+  Updated for Fall 2017
+  2017-10-1
+  -->
+  </back>
+</rfc>
