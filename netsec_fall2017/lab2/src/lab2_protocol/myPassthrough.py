@@ -62,6 +62,25 @@ class PassThroughc2(StackingProtocol):
         self.databuffer = ''
         self.timeout_timer = time.time()
         self.info_list = item_list()
+        self.higherTransport = None
+
+    # def waitClose(self):
+    #     if time.time() - self.timeout_timer >3:
+    #         self.higherTransport.sent_data()
+    #
+    #     asyncio.get_event_loop().call_later(1, self.waitClose)
+
+    def transmit(self):
+        if time.time() - self.timeout_timer > 1.5:
+            if self.info_list.sequenceNumber < self.info_list.init_seq + len(self.info_list.outBuffer):
+                self.higherTransport.sent_data()
+                self.timeout_timer = time.time()
+            else:
+                print("done,get me out xD")
+
+
+        txDelay = 1
+        asyncio.get_event_loop().call_later(txDelay, self.transmit)
 
     def connection_made(self, transport):
         self.transport = transport
@@ -73,6 +92,7 @@ class PassThroughc2(StackingProtocol):
         print("client: SYN sent")
         SYNbyte = SYN.__serialize__()
         self.transport.write(SYNbyte)
+        self.transmit()
 
     def data_received(self, data):
         self._deserializer.update(data)
@@ -114,7 +134,7 @@ class PassThroughc2(StackingProtocol):
                 elif self.handshake:
                     # this is client
 
-                    
+
 
                     if pkt.Type == 5:
                         if verify_packet(pkt, self.expected_packet):
@@ -173,9 +193,22 @@ class PassThroughs2(StackingProtocol):
         self.expected_ack = 0
         self.info_list = item_list()
         self.timeout_timer = time.time()
+        self.higherTransport = None
+
+    def transmit(self):
+        if time.time() - self.timeout_timer > 1.5:
+            if self.info_list.sequenceNumber < self.info_list.init_seq + len(self.info_list.outBuffer):
+                self.higherTransport.sent_data()
+                self.timeout_timer = time.time()
+            else:
+                print("done,get me out xD")
+
+        txDelay = 1
+        asyncio.get_event_loop().call_later(txDelay, self.transmit)
 
     def connection_made(self, transport):
         self.transport = transport
+        self.transmit()
 
     def data_received(self, data):
         self._deserializer.update(data)
@@ -291,7 +324,6 @@ def generate_ACK(seq_number, ack_number):
     ACK.Type = 2
     ACK.SequenceNumber = seq_number
     ACK.Acknowledgement = ack_number
-
     # print("this is my ack number " + str(ack_number))
     ACK.Checksum = ACK.calculateChecksum()
 
