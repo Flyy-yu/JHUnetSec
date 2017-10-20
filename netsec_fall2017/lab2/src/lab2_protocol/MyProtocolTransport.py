@@ -11,9 +11,6 @@ class item_list():
     Acknowledgement = 0
     init_seq = 0
     outBuffer = b''
-    w_p = 0
-    from_where = 'app'
-    readytoSend = True
 
 
 class MyTransport(StackingTransport):
