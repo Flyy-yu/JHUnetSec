@@ -1,8 +1,8 @@
 from playground.network.common import *
 from .mypacket import *
 
-packet_size = 5
-window_size = 5
+packet_size = 1000
+window_size = 3
 
 
 class item_list():
