@@ -1,9 +1,10 @@
 import time
 from .MyProtocolTransport import *
 import logging
+import asyncio
 
-# logging.getLogger().setLevel(logging.NOTSET)  # this logs *everything*
-# logging.getLogger().addHandler(logging.StreamHandler())  # logs to stderr
+logging.getLogger().setLevel(logging.NOTSET)  # this logs *everything*
+logging.getLogger().addHandler(logging.StreamHandler())  # logs to stderr
 
 
 class PassThroughc1(StackingProtocol):
@@ -55,11 +56,11 @@ class PassThroughc2(StackingProtocol):
         self.handshake = False
         self.seq = 0
         self.state = 0
-        self.sessid = ''
         self.ack_counter = 0
         self.expected_packet = 0
         self.expected_ack = 0
         self.databuffer = ''
+        self.timeout_timer = time.time()
         self.info_list = item_list()
 
     def connection_made(self, transport):
@@ -83,8 +84,6 @@ class PassThroughc2(StackingProtocol):
                         ACK = PEEPPacket()
                         ACK.Type = 2  # ACK -  TYPE 2
                         self.seq = self.seq + 1
-                        # self.sessid = pkt.SessionId
-                        print("The session id is", self.sessid)
                         ACK.updateSeqAcknumber(seq=self.seq, ack=pkt.SequenceNumber + 1)
                         print("client: ACK sent")
                         ACK.Checksum = ACK.calculateChecksum()
@@ -99,7 +98,6 @@ class PassThroughc2(StackingProtocol):
                         self.expected_ack = pkt.SequenceNumber + packet_size
                         # setup stuff for data transfer
                         self.info_list.sequenceNumber = self.seq
-                        # self.info_list.SessionId = self.sessid
                         self.info_list.init_seq = self.seq
                         self.higherTransport = MyTransport(self.transport)
                         self.higherTransport.setinfo(self.info_list)
@@ -114,17 +112,21 @@ class PassThroughc2(StackingProtocol):
 
                         # client and server should be the same, start from here
                 elif self.handshake:
+                    # this is client
+
+                    
+
                     if pkt.Type == 5:
-                        if verify_packet(pkt, self.sessid, self.expected_packet):
+                        if verify_packet(pkt, self.expected_packet):
                             # print("verify_packet from client")
                             self.expected_packet = self.expected_packet + len(pkt.Data)
                             # print( "seq number:" + str(pkt.SequenceNumber))
-                            Ackpacket = generate_ACK(self.seq, pkt.SequenceNumber + len(pkt.Data), self.sessid)
+                            Ackpacket = generate_ACK(self.seq, pkt.SequenceNumber + len(pkt.Data))
                             self.transport.write(Ackpacket.__serialize__())
                             self.higherProtocol().data_received(pkt.Data)
 
                     if pkt.Type == 2:
-                        if verify_ack(pkt, self.sessid):
+                        if verify_ack(pkt):
 
                             self.ack_counter = self.ack_counter + 1
                             # print(self.ack_counter)
@@ -134,9 +136,11 @@ class PassThroughc2(StackingProtocol):
 
                             if self.ack_counter == window_size and pkt.Acknowledgement < len(
                                     self.info_list.outBuffer) + self.seq:
-
+                                print("next round")
+                                self.timeout_timer = time.time()
                                 self.ack_counter = 0
-                                self.info_list.sequenceNumber = pkt.Acknowledgement
+                                if self.info_list.sequenceNumber < pkt.Acknowledgement:
+                                    self.info_list.sequenceNumber = pkt.Acknowledgement
                                 self.higherTransport.ready()
                                 if pkt.Acknowledgement < self.info_list.init_seq + len(self.info_list.outBuffer):
                                     self.higherTransport.sent_data()
@@ -145,7 +149,7 @@ class PassThroughc2(StackingProtocol):
                                 self.ack_counter = 0
                                 self.higherTransport.setinfo(self.info_list)
                                 self.higherTransport.ready()
-                                #print("done")
+                                # print("done")
 
     def connection_lost(self, exc):
         self.higherProtocol().connection_lost()
@@ -164,11 +168,11 @@ class PassThroughs2(StackingProtocol):
         self.handshake = False
         self.seq = 0
         self.state = 0
-        self.sessid = ''
         self.ack_counter = 0
         self.expected_packet = 0
         self.expected_ack = 0
         self.info_list = item_list()
+        self.timeout_timer = time.time()
 
     def connection_made(self, transport):
         self.transport = transport
@@ -183,8 +187,6 @@ class PassThroughs2(StackingProtocol):
                         print("received SYN")
                         SYN_ACK = PEEPPacket()
                         SYN_ACK.Type = 1
-                        self.sessid = str(time.time())
-                        # SYN_ACK.SessionId = self.sessid
                         self.seq = self.seq + 1
                         SYN_ACK.updateSeqAcknumber(seq=self.seq, ack=pkt.SequenceNumber + 1)
                         SYN_ACK.Checksum = SYN_ACK.calculateChecksum()
@@ -203,7 +205,6 @@ class PassThroughs2(StackingProtocol):
                         self.expected_ack = pkt.SequenceNumber + packet_size
                         # setup stuff for data transfer
                         self.info_list.sequenceNumber = self.seq
-                        # self.info_list.SessionId = self.sessid
                         self.info_list.init_seq = self.seq
 
                         self.higherTransport = MyTransport(self.transport)
@@ -221,17 +222,16 @@ class PassThroughs2(StackingProtocol):
                         # client and server should be the same, start from here
                 elif self.handshake:
                     if pkt.Type == 5:
-                        if verify_packet(pkt, self.sessid, self.expected_packet):
+                        if verify_packet(pkt, self.expected_packet):
                             # print("verify_packet from server")
                             self.expected_packet = self.expected_packet + len(pkt.Data)
-                            Ackpacket = generate_ACK(self.seq, pkt.SequenceNumber + len(pkt.Data), self.sessid)
+                            Ackpacket = generate_ACK(self.seq, pkt.SequenceNumber + len(pkt.Data))
                             # print("seq number:" + str(pkt.SequenceNumber))
                             self.transport.write(Ackpacket.__serialize__())
                             self.higherProtocol().data_received(pkt.Data)
 
                     if pkt.Type == 2:
-                        if verify_ack(pkt, self.sessid):
-
+                        if verify_ack(pkt):
                             self.ack_counter = self.ack_counter + 1
                             # print(self.ack_counter)
                             # print("I got an ACK")
@@ -240,10 +240,13 @@ class PassThroughs2(StackingProtocol):
 
                             if self.ack_counter == window_size and pkt.Acknowledgement < len(
                                     self.info_list.outBuffer) + self.seq:
-                                # print("next round")
+                                self.timeout_timer = time.time()
+                                print("next round")
                                 # self.info_list.from_where = "passthough"
                                 self.ack_counter = 0
-                                self.info_list.sequenceNumber = pkt.Acknowledgement
+
+                                if self.info_list.sequenceNumber < pkt.Acknowledgement:
+                                    self.info_list.sequenceNumber = pkt.Acknowledgement
                                 self.higherTransport.ready()
                                 if pkt.Acknowledgement < self.info_list.init_seq + len(self.info_list.outBuffer):
                                     self.higherTransport.sent_data()
@@ -255,21 +258,18 @@ class PassThroughs2(StackingProtocol):
                                 self.higherTransport.setinfo(self.info_list)
                                 self.higherTransport.ready()
 
-                                #print("done")
+                                print("done")
 
     def connection_lost(self, exc):
         self.higherProtocol().connection_lost()
         self.transport = None
 
 
-def verify_packet(packet, id, expected_packet):
+def verify_packet(packet, expected_packet):
     goodpacket = True
     if packet.verifyChecksum() == False:
         print("wrong checksum")
         goodpacket = False
-    # if packet.SessionId != id:
-    #     print("wrong session ID")
-    #     goodpacket = False
     if expected_packet != packet.SequenceNumber:
         print("expect_number:" + str(expected_packet))
         print("packet number: " + str(packet.SequenceNumber))
@@ -278,23 +278,20 @@ def verify_packet(packet, id, expected_packet):
     return goodpacket
 
 
-def verify_ack(packet, id):
+def verify_ack(packet):
     goodpacket = True
     if packet.verifyChecksum() == False:
         print("wrong checksum")
         goodpacket = False
-    # if packet.SessionId != id:
-    #     print("wrong session ID")
-    #     goodpacket = False
     return goodpacket
 
 
-def generate_ACK(seq_number, ack_number, id):
+def generate_ACK(seq_number, ack_number):
     ACK = PEEPPacket()
     ACK.Type = 2
     ACK.SequenceNumber = seq_number
     ACK.Acknowledgement = ack_number
-    # ACK.SessionId = id
+
     # print("this is my ack number " + str(ack_number))
     ACK.Checksum = ACK.calculateChecksum()
 
@@ -307,7 +304,6 @@ def generate_ACK(seq_number, ack_number, id):
     #     ("Type", UINT8),
     #     ("SequenceNumber", UINT32({Optional: True})),
     #     ("Checksum", UINT16),
-    #     ("SessionId", STRING({Optional: True})),
     #     ("Acknowledgement", UINT32({Optional: True})),
     #     ("Data", BUFFER({Optional: True}))
     # ]

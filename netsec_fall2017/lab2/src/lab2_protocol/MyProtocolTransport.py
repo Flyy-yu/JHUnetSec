@@ -1,8 +1,8 @@
 from playground.network.common import *
 from .mypacket import *
 
-packet_size = 1000
-window_size = 3
+packet_size = 5
+window_size = 5
 
 
 class item_list():
@@ -24,9 +24,13 @@ class MyTransport(StackingTransport):
         if len(self.info_list.outBuffer) < 3:
             self.info_list.init_seq = self.info_list.sequenceNumber
 
-        self.info_list.outBuffer += (data)
-        self.sent_data()
-        #
+        if self.info_list.sequenceNumber == self.info_list.init_seq + len(self.info_list.outBuffer):
+            self.info_list.outBuffer += data
+            self.sent_data()
+        else:
+            self.info_list.outBuffer += data
+
+            #
 
     def sent_data(self):
         small_packet = PEEPPacket()
