@@ -3,6 +3,7 @@ from .MyProtocolTransport import *
 import logging
 import asyncio
 
+
 # logging.getLogger().setLevel(logging.NOTSET)  # this logs *everything*
 # logging.getLogger().addHandler(logging.StreamHandler())  # logs to stderr
 
@@ -21,7 +22,6 @@ class PassThroughc1(StackingProtocol):
 
     def connection_lost(self, exc):
         self.higherProtocol().connection_lost(exc)
-        self.transport = None
 
 
 #
@@ -39,7 +39,6 @@ class PassThroughs1(StackingProtocol):
 
     def connection_lost(self, exc):
         self.higherProtocol().connection_lost(exc)
-        self.transport = None
 
 
 #
@@ -64,19 +63,15 @@ class PassThroughc2(StackingProtocol):
         self.info_list = item_list()
         self.higherTransport = None
 
-    # def waitClose(self):
-    #     if time.time() - self.timeout_timer >3:
-    #         self.higherTransport.sent_data()
-    #
-    #     asyncio.get_event_loop().call_later(1, self.waitClose)
-
     def transmit(self):
-        if time.time() - self.timeout_timer > 1.5:
+        if time.time() - self.timeout_timer > 0.5:
+            print("from client seq: " + str(self.info_list.sequenceNumber))
+            print(self.info_list.init_seq + len(self.info_list.outBuffer))
             if self.info_list.sequenceNumber < self.info_list.init_seq + len(self.info_list.outBuffer):
                 self.higherTransport.sent_data()
                 self.timeout_timer = time.time()
             else:
-                print("done,get me out xD")
+                print("done,get me out xD from client")
 
         txDelay = 1
         asyncio.get_event_loop().call_later(txDelay, self.transmit)
@@ -131,56 +126,62 @@ class PassThroughc2(StackingProtocol):
 
                         # client and server should be the same, start from here
                 elif self.handshake:
-                    # this is client
-
                     if pkt.Type == 5:
                         if verify_packet(pkt, self.expected_packet):
                             # print("verify_packet from client")
                             self.expected_packet = self.expected_packet + len(pkt.Data)
-                            # print( "seq number:" + str(pkt.SequenceNumber))
                             Ackpacket = generate_ACK(self.seq, pkt.SequenceNumber + len(pkt.Data))
+                            # print("seq number:" + str(pkt.SequenceNumber))
                             self.transport.write(Ackpacket.__serialize__())
                             self.higherProtocol().data_received(pkt.Data)
 
                     if pkt.Type == 2:
                         if verify_ack(pkt):
-
                             self.ack_counter = self.ack_counter + 1
                             # print(self.ack_counter)
                             # print("I got an ACK")
                             # print(pkt.Acknowledgement)
                             # print("ack number:" + str(pkt.Acknowledgement))
+
                             if self.info_list.sequenceNumber < pkt.Acknowledgement:
                                 self.info_list.sequenceNumber = pkt.Acknowledgement
+
                             if self.ack_counter == window_size and pkt.Acknowledgement < len(
                                     self.info_list.outBuffer) + self.seq:
-                                print("next round")
                                 self.timeout_timer = time.time()
+                                print("next round")
+                                # self.info_list.from_where = "passthough"
                                 self.ack_counter = 0
 
-                                self.higherTransport.ready()
                                 if pkt.Acknowledgement < self.info_list.init_seq + len(self.info_list.outBuffer):
                                     self.higherTransport.sent_data()
+
                             elif pkt.Acknowledgement == len(self.info_list.outBuffer) + self.seq:
                                 self.seq = pkt.Acknowledgement
                                 self.ack_counter = 0
                                 self.higherTransport.setinfo(self.info_list)
-                                self.higherTransport.ready()
-                                # print("done")
+                                print("done")
+                    if pkt.Type == 4:
+                        # if verify_packet(pkt, self.expected_packet):
+                        print("get ripx ack from server")
+                    if pkt.Type == 3:
+                        RIP_ACK = PEEPPacket()
+                        RIP_ACK.Type = 4
+                        RIP_ACK.updateSeqAcknumber(seq=self.seq, ack=pkt.SequenceNumber + 1)
+                        RIP_ACK.calculateChecksum()
+                        print("client: RIPy-ACK sent")
+                        self.transport.write(RIP_ACK.__serialize__())
 
     def connection_lost(self, exc):
 
-        # Rip = PEEPPacket()
-        # Rip.Type = 3  # ACK -  TYPE 2
-        # self.seq = self.seq + 1
-        # Rip.updateSeqAcknumber(seq=self.seq, ack=Rip.SequenceNumber + 1)
-        # print("client: ACK sent")
-        # Rip.Checksum = Rip.calculateChecksum()
-        # self.transport.write(Rip.__serialize__())
+        Rip = PEEPPacket()
+        Rip.Type = 3  # ACK -  TYPE 2
+        self.seq = self.seq + 1
+        Rip.updateSeqAcknumber(seq=self.seq, ack=1)
+        print("client: ACK sent")
+        Rip.Checksum = Rip.calculateChecksum()
+        self.transport.write(Rip.__serialize__())
         self.higherProtocol().connection_lost(exc)
-        self.transport.close()
-
-        self.transport = None
 
 
 #
@@ -203,12 +204,14 @@ class PassThroughs2(StackingProtocol):
         self.higherTransport = None
 
     def transmit(self):
-        if time.time() - self.timeout_timer > 1.5:
+        if time.time() - self.timeout_timer > 0.5:
+            print("from server seq: " + str(self.info_list.sequenceNumber))
+            print(self.info_list.init_seq + len(self.info_list.outBuffer))
             if self.info_list.sequenceNumber < self.info_list.init_seq + len(self.info_list.outBuffer):
                 self.higherTransport.sent_data()
                 self.timeout_timer = time.time()
             else:
-                print("done,get me out xD")
+                print("done,get me out xD from server")
 
         txDelay = 1
         asyncio.get_event_loop().call_later(txDelay, self.transmit)
@@ -283,18 +286,13 @@ class PassThroughs2(StackingProtocol):
                                 # self.info_list.from_where = "passthough"
                                 self.ack_counter = 0
 
-
-                                self.higherTransport.ready()
                                 if pkt.Acknowledgement < self.info_list.init_seq + len(self.info_list.outBuffer):
                                     self.higherTransport.sent_data()
 
                             elif pkt.Acknowledgement == len(self.info_list.outBuffer) + self.seq:
                                 self.seq = pkt.Acknowledgement
                                 self.ack_counter = 0
-
                                 self.higherTransport.setinfo(self.info_list)
-                                self.higherTransport.ready()
-
                                 print("done")
 
                     if pkt.Type == 3:
@@ -302,13 +300,11 @@ class PassThroughs2(StackingProtocol):
                         RIP_ACK.Type = 4
                         RIP_ACK.updateSeqAcknumber(seq=self.seq, ack=pkt.SequenceNumber + 1)
                         RIP_ACK.calculateChecksum()
-                        print("server: RIP-ACK sent")
+                        print("server: RIPx-ACK sent")
                         self.transport.write(RIP_ACK.__serialize__())
 
     def connection_lost(self, exc):
         self.higherProtocol().connection_lost(exc)
-        self.transport.close()
-        self.transport = None
 
 
 def verify_packet(packet, expected_packet):

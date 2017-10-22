@@ -30,6 +30,8 @@ class MyTransport(StackingTransport):
             #
 
     def sent_data(self):
+        # print(len(self.info_list.outBuffer))
+        # print(self.info_list.sequenceNumber)
         small_packet = PEEPPacket()
         recordSeq = self.info_list.sequenceNumber
         for n in range(0, 3):
@@ -55,14 +57,14 @@ class MyTransport(StackingTransport):
             small_packet.Data = packet_data
             # small_packet.SessionId = self.info_list.SessionId
             small_packet.Checksum = small_packet.calculateChecksum()
+
+            print(len(small_packet.__serialize__()))
+
             self.lowerTransport().write(small_packet.__serialize__())
             if n > window_size:
                 break
         self.info_list.sequenceNumber = recordSeq
 
-
-    def ready(self):
-        self.info_list.readytoSend = True
 
     def get_data(self):
         return self.info_list.data

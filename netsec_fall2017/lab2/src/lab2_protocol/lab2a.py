@@ -41,7 +41,6 @@ class MyProtocolClient(asyncio.Protocol):
 
     def connection_lost(self, exc):
         self.transport.close()
-        print('stop', exc)
         self.transport = None
 
 
@@ -86,7 +85,7 @@ class MyProtocolServer(asyncio.Protocol):
                 self.transport.write(ResultpktB)
 
     def connection_lost(self, exc):
-        print('stop', exc)
+
         self.transport = None
 
 
