@@ -2,7 +2,7 @@ from playground.network.common import *
 from .mypacket import *
 
 packet_size = 1000
-window_size = 5
+window_size = 3
 
 
 class item_list():
@@ -31,8 +31,8 @@ class MyTransport(StackingTransport):
 
     def sent_data(self):
         small_packet = PEEPPacket()
-
-        for n in range(0, 5):
+        recordSeq = self.info_list.sequenceNumber
+        for n in range(0, 3):
             place_to_send = self.info_list.sequenceNumber - self.info_list.init_seq
 
             # print("inwrite:")
@@ -58,6 +58,8 @@ class MyTransport(StackingTransport):
             self.lowerTransport().write(small_packet.__serialize__())
             if n > window_size:
                 break
+        self.info_list.sequenceNumber = recordSeq
+
 
     def ready(self):
         self.info_list.readytoSend = True

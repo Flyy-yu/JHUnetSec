@@ -3,8 +3,8 @@ from .MyProtocolTransport import *
 import logging
 import asyncio
 
-logging.getLogger().setLevel(logging.NOTSET)  # this logs *everything*
-logging.getLogger().addHandler(logging.StreamHandler())  # logs to stderr
+# logging.getLogger().setLevel(logging.NOTSET)  # this logs *everything*
+# logging.getLogger().addHandler(logging.StreamHandler())  # logs to stderr
 
 
 class PassThroughc1(StackingProtocol):
@@ -20,7 +20,7 @@ class PassThroughc1(StackingProtocol):
         self.higherProtocol().data_received(data)
 
     def connection_lost(self, exc):
-        self.higherProtocol().connection_lost()
+        self.higherProtocol().connection_lost(exc)
         self.transport = None
 
 
@@ -38,7 +38,7 @@ class PassThroughs1(StackingProtocol):
         self.higherProtocol().data_received(data)
 
     def connection_lost(self, exc):
-        self.higherProtocol().connection_lost()
+        self.higherProtocol().connection_lost(exc)
         self.transport = None
 
 
@@ -77,7 +77,6 @@ class PassThroughc2(StackingProtocol):
                 self.timeout_timer = time.time()
             else:
                 print("done,get me out xD")
-
 
         txDelay = 1
         asyncio.get_event_loop().call_later(txDelay, self.transmit)
@@ -134,8 +133,6 @@ class PassThroughc2(StackingProtocol):
                 elif self.handshake:
                     # this is client
 
-
-
                     if pkt.Type == 5:
                         if verify_packet(pkt, self.expected_packet):
                             # print("verify_packet from client")
@@ -153,14 +150,14 @@ class PassThroughc2(StackingProtocol):
                             # print("I got an ACK")
                             # print(pkt.Acknowledgement)
                             # print("ack number:" + str(pkt.Acknowledgement))
-
+                            if self.info_list.sequenceNumber < pkt.Acknowledgement:
+                                self.info_list.sequenceNumber = pkt.Acknowledgement
                             if self.ack_counter == window_size and pkt.Acknowledgement < len(
                                     self.info_list.outBuffer) + self.seq:
                                 print("next round")
                                 self.timeout_timer = time.time()
                                 self.ack_counter = 0
-                                if self.info_list.sequenceNumber < pkt.Acknowledgement:
-                                    self.info_list.sequenceNumber = pkt.Acknowledgement
+
                                 self.higherTransport.ready()
                                 if pkt.Acknowledgement < self.info_list.init_seq + len(self.info_list.outBuffer):
                                     self.higherTransport.sent_data()
@@ -172,7 +169,17 @@ class PassThroughc2(StackingProtocol):
                                 # print("done")
 
     def connection_lost(self, exc):
-        self.higherProtocol().connection_lost()
+
+        # Rip = PEEPPacket()
+        # Rip.Type = 3  # ACK -  TYPE 2
+        # self.seq = self.seq + 1
+        # Rip.updateSeqAcknumber(seq=self.seq, ack=Rip.SequenceNumber + 1)
+        # print("client: ACK sent")
+        # Rip.Checksum = Rip.calculateChecksum()
+        # self.transport.write(Rip.__serialize__())
+        self.higherProtocol().connection_lost(exc)
+        self.transport.close()
+
         self.transport = None
 
 
@@ -245,12 +252,7 @@ class PassThroughs2(StackingProtocol):
                         self.higherProtocol().connection_made(self.higherTransport)
                         self.handshake = True
                         break
-                        # if pkt.Type == 3:
-                        #     RIP_ACK = PEEPPacket()
-                        #     RIP_ACK.Type = 4
-                        #     RIP_ACK.calculateChecksum()
-                        #     print("server: RIP-ACK sent")
-                        #     self.transport.write(RIP_ACK.__serialize__())
+
 
                         # client and server should be the same, start from here
                 elif self.handshake:
@@ -271,6 +273,9 @@ class PassThroughs2(StackingProtocol):
                             # print(pkt.Acknowledgement)
                             # print("ack number:" + str(pkt.Acknowledgement))
 
+                            if self.info_list.sequenceNumber < pkt.Acknowledgement:
+                                self.info_list.sequenceNumber = pkt.Acknowledgement
+
                             if self.ack_counter == window_size and pkt.Acknowledgement < len(
                                     self.info_list.outBuffer) + self.seq:
                                 self.timeout_timer = time.time()
@@ -278,8 +283,7 @@ class PassThroughs2(StackingProtocol):
                                 # self.info_list.from_where = "passthough"
                                 self.ack_counter = 0
 
-                                if self.info_list.sequenceNumber < pkt.Acknowledgement:
-                                    self.info_list.sequenceNumber = pkt.Acknowledgement
+
                                 self.higherTransport.ready()
                                 if pkt.Acknowledgement < self.info_list.init_seq + len(self.info_list.outBuffer):
                                     self.higherTransport.sent_data()
@@ -293,8 +297,17 @@ class PassThroughs2(StackingProtocol):
 
                                 print("done")
 
+                    if pkt.Type == 3:
+                        RIP_ACK = PEEPPacket()
+                        RIP_ACK.Type = 4
+                        RIP_ACK.updateSeqAcknumber(seq=self.seq, ack=pkt.SequenceNumber + 1)
+                        RIP_ACK.calculateChecksum()
+                        print("server: RIP-ACK sent")
+                        self.transport.write(RIP_ACK.__serialize__())
+
     def connection_lost(self, exc):
-        self.higherProtocol().connection_lost()
+        self.higherProtocol().connection_lost(exc)
+        self.transport.close()
         self.transport = None
 
 
@@ -328,8 +341,6 @@ def generate_ACK(seq_number, ack_number):
     ACK.Checksum = ACK.calculateChecksum()
 
     return ACK
-
-
 
 
     # FIELDS = [

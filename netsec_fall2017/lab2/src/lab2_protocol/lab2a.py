@@ -34,14 +34,15 @@ class MyProtocolClient(asyncio.Protocol):
             if isinstance(pkt, Result):
                 if pkt.result == True:
                     print("connect to server success")
-                    self.transport.close()
+                    #self.transport.close()
                 elif pkt.result == False:
                     print("connect to server Failed")
-                    self.transport.close()
+                    #self.transport.close()
 
     def connection_lost(self, exc):
+        self.transport.close()
+        print('stop', exc)
         self.transport = None
-        # self.loop.stop()
 
 
 # this is the server
@@ -85,7 +86,9 @@ class MyProtocolServer(asyncio.Protocol):
                 self.transport.write(ResultpktB)
 
     def connection_lost(self, exc):
+        print('stop', exc)
         self.transport = None
+
 
 
 #
