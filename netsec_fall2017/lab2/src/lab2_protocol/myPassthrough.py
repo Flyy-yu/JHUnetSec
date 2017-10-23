@@ -68,15 +68,13 @@ class PassThroughc2(StackingProtocol):
 
     def transmit(self):
         if time.time() - self.timeout_timer > 0.5:
-            print("from client seq: " + str(self.info_list.sequenceNumber))
-            print(self.info_list.init_seq + len(self.info_list.outBuffer))
             if self.info_list.sequenceNumber < self.info_list.init_seq + len(self.info_list.outBuffer):
                 self.info_list.sequenceNumber = self.lastAck
                 self.ack_counter = 0
                 self.timeout_timer = time.time()
                 self.higherTransport.sent_data()
             else:
-                print("done,get me out xD from client")
+                print("client waiting...to...end")
 
         if time.time() - self.close_timer > 5:
             self.info_list.readyToclose = True
@@ -226,15 +224,13 @@ class PassThroughs2(StackingProtocol):
 
     def transmit(self):
         if time.time() - self.timeout_timer > 0.5:
-            print("from server seq: " + str(self.info_list.sequenceNumber))
-            print(self.info_list.init_seq + len(self.info_list.outBuffer))
             if self.info_list.sequenceNumber < self.info_list.init_seq + len(self.info_list.outBuffer):
                 self.info_list.sequenceNumber = self.lastAck
                 self.higherTransport.sent_data()
                 self.timeout_timer = time.time()
                 self.ack_counter = 0
             else:
-                print("done,get me out xD from server")
+                print("server waiting...to...end")
         if time.time() - self.close_timer > 5:
             self.info_list.readyToclose = True
             self.higherTransport.close()
