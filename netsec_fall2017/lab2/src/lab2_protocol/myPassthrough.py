@@ -95,16 +95,28 @@ class PassThroughc2(StackingProtocol):
         txDelay = 1
         asyncio.get_event_loop().call_later(txDelay, self.transmit)
 
+    def synhandler(self, seq):
+        if self.state != 1:
+            SYN = PEEPPacket()
+            SYN.SequenceNumber = seq
+            SYN.Type = 0
+            SYN.Checksum = SYN.calculateChecksum()
+            print("client: SYN sent again")
+            SYNbyte = SYN.__serialize__()
+            self.transport.write(SYNbyte)
+            asyncio.get_event_loop().call_later(1, self.synhandler, seq)
+
     def connection_made(self, transport):
         self.transport = transport
-        SYN = PEEPPacket()
-        SYN.SequenceNumber = self.seq
+        # SYN = PEEPPacket()
+        # SYN.SequenceNumber = self.seq
+        # SYN.Type = 0  # SYN - TYPE 0
+        # SYN.Checksum = SYN.calculateChecksum()
+        # print("client: SYN sent")
+        # SYNbyte = SYN.__serialize__()
+        # self.transport.write(SYNbyte)
+        self.synhandler(self.seq)
         self.seq = self.seq + 1
-        SYN.Type = 0  # SYN - TYPE 0
-        SYN.Checksum = SYN.calculateChecksum()
-        print("client: SYN sent")
-        SYNbyte = SYN.__serialize__()
-        self.transport.write(SYNbyte)
 
     def data_received(self, data):
         self.close_timer = time.time()
@@ -233,6 +245,16 @@ class PassThroughs2(StackingProtocol):
         txDelay = 1
         asyncio.get_event_loop().call_later(txDelay, self.transmit)
 
+    def synackhandler(self, seqq, ackk):
+        if not self.handshake:
+            SYN_ACK = PEEPPacket()
+            SYN_ACK.Type = 1
+            SYN_ACK.updateSeqAcknumber(seq=seqq, ack=ackk)
+            SYN_ACK.Checksum = SYN_ACK.calculateChecksum()
+            print("server: SYN-ACK sent again")
+            self.transport.write(SYN_ACK.__serialize__())
+            asyncio.get_event_loop().call_later(1, self.synackhandler, seqq)
+
     def connection_made(self, transport):
         self.transport = transport
 
@@ -241,17 +263,18 @@ class PassThroughs2(StackingProtocol):
         self._deserializer.update(data)
         for pkt in self._deserializer.nextPackets():
             if isinstance(pkt, PEEPPacket):
-
                 if pkt.Type == 0 and self.state == 0:
                     if pkt.verifyChecksum():
                         print("received SYN")
-                        SYN_ACK = PEEPPacket()
-                        SYN_ACK.Type = 1
+
+                        # SYN_ACK = PEEPPacket()
+                        # SYN_ACK.Type = 1
                         self.seq = self.seq + 1
-                        SYN_ACK.updateSeqAcknumber(seq=self.seq, ack=pkt.SequenceNumber + 1)
-                        SYN_ACK.Checksum = SYN_ACK.calculateChecksum()
-                        print("server: SYN-ACK sent")
-                        self.transport.write(SYN_ACK.__serialize__())
+                        # SYN_ACK.updateSeqAcknumber(seq=self.seq, ack=pkt.SequenceNumber + 1)
+                        # SYN_ACK.Checksum = SYN_ACK.calculateChecksum()
+                        # print("server: SYN-ACK sent")
+                        # self.transport.write(SYN_ACK.__serialize__())
+                        self.synackhandler(self.seq,pkt.SequenceNumber + 1)
                         self.state = 1
 
                 elif pkt.Type == 2 and self.state == 1 and not self.handshake:
