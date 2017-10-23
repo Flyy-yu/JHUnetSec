@@ -68,6 +68,5 @@ class MyTransport(StackingTransport):
                 break
         self.info_list.sequenceNumber = recordSeq
 
-
     def get_data(self):
         return self.info_list.data

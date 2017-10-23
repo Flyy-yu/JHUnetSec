@@ -4,8 +4,8 @@ import logging
 import asyncio
 
 
-logging.getLogger().setLevel(logging.NOTSET)  # this logs *everything*
-logging.getLogger().addHandler(logging.StreamHandler())  # logs to stderr
+# logging.getLogger().setLevel(logging.NOTSET)  # this logs *everything*
+# logging.getLogger().addHandler(logging.StreamHandler())  # logs to stderr
 
 
 class PassThroughc1(StackingProtocol):
@@ -62,6 +62,7 @@ class PassThroughc2(StackingProtocol):
         self.timeout_timer = time.time()
         self.info_list = item_list()
         self.higherTransport = None
+        self.lastcorrect = 0
 
     def transmit(self):
         if time.time() - self.timeout_timer > 0.5:
@@ -70,7 +71,6 @@ class PassThroughc2(StackingProtocol):
             if self.info_list.sequenceNumber < self.info_list.init_seq + len(self.info_list.outBuffer):
                 self.timeout_timer = time.time()
                 self.higherTransport.sent_data()
-
             else:
                 print("done,get me out xD from client")
         txDelay = 1
@@ -86,7 +86,6 @@ class PassThroughc2(StackingProtocol):
         print("client: SYN sent")
         SYNbyte = SYN.__serialize__()
         self.transport.write(SYNbyte)
-
 
     def data_received(self, data):
         self._deserializer.update(data)
@@ -129,12 +128,17 @@ class PassThroughc2(StackingProtocol):
                 elif self.handshake:
                     if pkt.Type == 5:
                         if verify_packet(pkt, self.expected_packet):
-                            # print("verify_packet from client")
+                            # print("verify_packet from server")
+                            self.lastcorrect = pkt.SequenceNumber + len(pkt.Data)
                             self.expected_packet = self.expected_packet + len(pkt.Data)
                             Ackpacket = generate_ACK(self.seq, pkt.SequenceNumber + len(pkt.Data))
                             # print("seq number:" + str(pkt.SequenceNumber))
                             self.transport.write(Ackpacket.__serialize__())
                             self.higherProtocol().data_received(pkt.Data)
+                        else:
+                            Ackpacket = generate_ACK(self.seq, self.lastcorrect)
+                            # print("seq number:" + str(pkt.SequenceNumber))
+                            self.transport.write(Ackpacket.__serialize__())
 
                     if pkt.Type == 2:
                         if verify_ack(pkt):
@@ -203,6 +207,7 @@ class PassThroughs2(StackingProtocol):
         self.info_list = item_list()
         self.timeout_timer = time.time()
         self.higherTransport = None
+        self.lastcorrect = 0
 
     def transmit(self):
         if time.time() - self.timeout_timer > 0.5:
@@ -264,11 +269,16 @@ class PassThroughs2(StackingProtocol):
                     if pkt.Type == 5:
                         if verify_packet(pkt, self.expected_packet):
                             # print("verify_packet from server")
+                            self.lastcorrect = pkt.SequenceNumber + len(pkt.Data)
                             self.expected_packet = self.expected_packet + len(pkt.Data)
                             Ackpacket = generate_ACK(self.seq, pkt.SequenceNumber + len(pkt.Data))
                             # print("seq number:" + str(pkt.SequenceNumber))
                             self.transport.write(Ackpacket.__serialize__())
                             self.higherProtocol().data_received(pkt.Data)
+                        else:
+                            Ackpacket = generate_ACK(self.seq, self.lastcorrect)
+                            # print("seq number:" + str(pkt.SequenceNumber))
+                            self.transport.write(Ackpacket.__serialize__())
 
                     if pkt.Type == 2:
                         if verify_ack(pkt):

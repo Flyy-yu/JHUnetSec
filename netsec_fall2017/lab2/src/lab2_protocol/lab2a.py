@@ -7,7 +7,7 @@ from .myPassthrough import *
 # this is the client
 class MyProtocolClient(asyncio.Protocol):
     def __init__(self, name, loop):
-        self.name = name
+        self.name = "abc"*20000
         self.loop = loop
         self.transport = None
         self._deserializer = PacketType.Deserializer()
@@ -34,10 +34,10 @@ class MyProtocolClient(asyncio.Protocol):
             if isinstance(pkt, Result):
                 if pkt.result == True:
                     print("connect to server success")
-                    #self.transport.close()
+                    # self.transport.close()
                 elif pkt.result == False:
                     print("connect to server Failed")
-                    #self.transport.close()
+                    # self.transport.close()
 
     def connection_lost(self, exc):
         self.transport.close()
@@ -87,7 +87,6 @@ class MyProtocolServer(asyncio.Protocol):
     def connection_lost(self, exc):
 
         self.transport = None
-
 
 
 #
