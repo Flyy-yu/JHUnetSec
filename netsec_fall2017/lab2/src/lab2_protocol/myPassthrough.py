@@ -63,16 +63,25 @@ class PassThroughc2(StackingProtocol):
         self.info_list = item_list()
         self.higherTransport = None
         self.lastcorrect = 0
+        self.lastAck = 0
+        self.close_timer = time.time()
 
     def transmit(self):
         if time.time() - self.timeout_timer > 0.5:
             print("from client seq: " + str(self.info_list.sequenceNumber))
             print(self.info_list.init_seq + len(self.info_list.outBuffer))
             if self.info_list.sequenceNumber < self.info_list.init_seq + len(self.info_list.outBuffer):
+                self.info_list.sequenceNumber = self.lastAck
+                self.ack_counter = 0
                 self.timeout_timer = time.time()
                 self.higherTransport.sent_data()
             else:
                 print("done,get me out xD from client")
+
+        if time.time() - self.close_timer > 5:
+            self.info_list.readyToclose = True
+            self.higherTransport.close()
+
         txDelay = 1
         asyncio.get_event_loop().call_later(txDelay, self.transmit)
 
@@ -88,6 +97,7 @@ class PassThroughc2(StackingProtocol):
         self.transport.write(SYNbyte)
 
     def data_received(self, data):
+        self.close_timer = time.time()
         self._deserializer.update(data)
         for pkt in self._deserializer.nextPackets():
             if isinstance(pkt, PEEPPacket):
@@ -136,8 +146,10 @@ class PassThroughc2(StackingProtocol):
                             self.transport.write(Ackpacket.__serialize__())
                             self.higherProtocol().data_received(pkt.Data)
                         else:
+
                             Ackpacket = generate_ACK(self.seq, self.lastcorrect)
                             # print("seq number:" + str(pkt.SequenceNumber))
+                            print("the client ack number out last correct: " + str(self.lastcorrect))
                             self.transport.write(Ackpacket.__serialize__())
 
                     if pkt.Type == 2:
@@ -150,6 +162,7 @@ class PassThroughc2(StackingProtocol):
 
                             if self.info_list.sequenceNumber < pkt.Acknowledgement:
                                 self.info_list.sequenceNumber = pkt.Acknowledgement
+                                self.lastAck = pkt.Acknowledgement
 
                             if self.ack_counter == window_size and pkt.Acknowledgement < len(
                                     self.info_list.outBuffer) + self.seq:
@@ -208,17 +221,23 @@ class PassThroughs2(StackingProtocol):
         self.timeout_timer = time.time()
         self.higherTransport = None
         self.lastcorrect = 0
+        self.lastAck = 0
+        self.close_timer = time.time()
 
     def transmit(self):
         if time.time() - self.timeout_timer > 0.5:
             print("from server seq: " + str(self.info_list.sequenceNumber))
             print(self.info_list.init_seq + len(self.info_list.outBuffer))
             if self.info_list.sequenceNumber < self.info_list.init_seq + len(self.info_list.outBuffer):
+                self.info_list.sequenceNumber = self.lastAck
                 self.higherTransport.sent_data()
                 self.timeout_timer = time.time()
+                self.ack_counter = 0
             else:
-
                 print("done,get me out xD from server")
+        if time.time() - self.close_timer > 5:
+            self.info_list.readyToclose = True
+            self.higherTransport.close()
 
         txDelay = 1
         asyncio.get_event_loop().call_later(txDelay, self.transmit)
@@ -227,6 +246,7 @@ class PassThroughs2(StackingProtocol):
         self.transport = transport
 
     def data_received(self, data):
+        self.close_timer = time.time()
         self._deserializer.update(data)
         for pkt in self._deserializer.nextPackets():
             if isinstance(pkt, PEEPPacket):
@@ -278,6 +298,7 @@ class PassThroughs2(StackingProtocol):
                         else:
                             Ackpacket = generate_ACK(self.seq, self.lastcorrect)
                             # print("seq number:" + str(pkt.SequenceNumber))
+                            print("the server ack number out last correct: " + str(self.lastcorrect))
                             self.transport.write(Ackpacket.__serialize__())
 
                     if pkt.Type == 2:
@@ -290,7 +311,7 @@ class PassThroughs2(StackingProtocol):
 
                             if self.info_list.sequenceNumber < pkt.Acknowledgement:
                                 self.info_list.sequenceNumber = pkt.Acknowledgement
-
+                                self.lastAck = pkt.Acknowledgement
                             if self.ack_counter == window_size and pkt.Acknowledgement < len(
                                     self.info_list.outBuffer) + self.seq:
                                 self.timeout_timer = time.time()

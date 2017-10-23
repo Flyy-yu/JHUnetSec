@@ -2,7 +2,7 @@ from playground.network.common import *
 from .mypacket import *
 
 packet_size = 1000
-window_size = 3
+window_size = 5
 
 
 class item_list():
@@ -11,6 +11,7 @@ class item_list():
     Acknowledgement = 0
     init_seq = 0
     outBuffer = b''
+    readyToclose = False
 
 
 class MyTransport(StackingTransport):
@@ -29,15 +30,18 @@ class MyTransport(StackingTransport):
 
             #
 
-    def write_eof(self):
-        pass
+    def close(self):
+        if self.info_list.readyToclose:
+            self.lowerTransport().close()
+        else:
+            print("waiting...")
 
     def sent_data(self):
         # print(len(self.info_list.outBuffer))
         # print(self.info_list.sequenceNumber)
         small_packet = PEEPPacket()
         recordSeq = self.info_list.sequenceNumber
-        for n in range(0, 3):
+        for n in range(0, 5):
             place_to_send = self.info_list.sequenceNumber - self.info_list.init_seq
 
             # print("inwrite:")
@@ -55,12 +59,12 @@ class MyTransport(StackingTransport):
                 small_packet.SequenceNumber = self.info_list.sequenceNumber
                 self.info_list.sequenceNumber += len(packet_data)
                 n = 999
-
+            print("this is the out seq number from write: " + str(self.info_list.sequenceNumber))
             small_packet.Type = 5  # data packet
             small_packet.Data = packet_data
             # small_packet.SessionId = self.info_list.SessionId
             small_packet.Checksum = small_packet.calculateChecksum()
-            print("i try to write sth")
+
             print(self.lowerTransport().is_closing())
             self.lowerTransport().write(small_packet.__serialize__())
 
