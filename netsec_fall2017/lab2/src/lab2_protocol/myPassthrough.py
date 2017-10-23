@@ -174,13 +174,13 @@ class PassThroughc2(StackingProtocol):
 
     def connection_lost(self, exc):
 
-        Rip = PEEPPacket()
-        Rip.Type = 3  # ACK -  TYPE 2
-        self.seq = self.seq + 1
-        Rip.updateSeqAcknumber(seq=self.seq, ack=1)
-        print("client: ACK sent")
-        Rip.Checksum = Rip.calculateChecksum()
-        self.transport.write(Rip.__serialize__())
+        # Rip = PEEPPacket()
+        # Rip.Type = 3  # ACK -  TYPE 2
+        # self.seq = self.seq + 1
+        # Rip.updateSeqAcknumber(seq=self.seq, ack=1)
+        # print("client: ACK sent")
+        # Rip.Checksum = Rip.calculateChecksum()
+        # self.transport.write(Rip.__serialize__())
         self.higherProtocol().connection_lost(exc)
 
 
