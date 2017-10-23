@@ -4,8 +4,8 @@ import logging
 import asyncio
 
 
-# logging.getLogger().setLevel(logging.NOTSET)  # this logs *everything*
-# logging.getLogger().addHandler(logging.StreamHandler())  # logs to stderr
+logging.getLogger().setLevel(logging.NOTSET)  # this logs *everything*
+logging.getLogger().addHandler(logging.StreamHandler())  # logs to stderr
 
 
 class PassThroughc1(StackingProtocol):
@@ -68,11 +68,11 @@ class PassThroughc2(StackingProtocol):
             print("from client seq: " + str(self.info_list.sequenceNumber))
             print(self.info_list.init_seq + len(self.info_list.outBuffer))
             if self.info_list.sequenceNumber < self.info_list.init_seq + len(self.info_list.outBuffer):
-                self.higherTransport.sent_data()
                 self.timeout_timer = time.time()
+                self.higherTransport.sent_data()
+
             else:
                 print("done,get me out xD from client")
-
         txDelay = 1
         asyncio.get_event_loop().call_later(txDelay, self.transmit)
 
@@ -86,7 +86,7 @@ class PassThroughc2(StackingProtocol):
         print("client: SYN sent")
         SYNbyte = SYN.__serialize__()
         self.transport.write(SYNbyte)
-        self.transmit()
+
 
     def data_received(self, data):
         self._deserializer.update(data)
@@ -117,6 +117,7 @@ class PassThroughc2(StackingProtocol):
                         self.higherTransport.setinfo(self.info_list)
                         self.higherProtocol().connection_made(self.higherTransport)
                         self.handshake = True
+                        self.transmit()
                         # if pkt.Type == 3:
                         #     RIP_ACK = PEEPPacket()
                         #     RIP_ACK.Type = 4
@@ -211,6 +212,7 @@ class PassThroughs2(StackingProtocol):
                 self.higherTransport.sent_data()
                 self.timeout_timer = time.time()
             else:
+
                 print("done,get me out xD from server")
 
         txDelay = 1
@@ -218,7 +220,6 @@ class PassThroughs2(StackingProtocol):
 
     def connection_made(self, transport):
         self.transport = transport
-        self.transmit()
 
     def data_received(self, data):
         self._deserializer.update(data)
@@ -254,6 +255,7 @@ class PassThroughs2(StackingProtocol):
                         self.higherTransport.setinfo(self.info_list)
                         self.higherProtocol().connection_made(self.higherTransport)
                         self.handshake = True
+                        self.transmit()
                         break
 
 

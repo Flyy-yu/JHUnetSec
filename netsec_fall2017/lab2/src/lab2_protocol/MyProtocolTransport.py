@@ -29,6 +29,9 @@ class MyTransport(StackingTransport):
 
             #
 
+    def write_eof(self):
+        pass
+
     def sent_data(self):
         # print(len(self.info_list.outBuffer))
         # print(self.info_list.sequenceNumber)
@@ -57,10 +60,10 @@ class MyTransport(StackingTransport):
             small_packet.Data = packet_data
             # small_packet.SessionId = self.info_list.SessionId
             small_packet.Checksum = small_packet.calculateChecksum()
-
-            print(len(small_packet.__serialize__()))
-
+            print("i try to write sth")
+            print(self.lowerTransport().is_closing())
             self.lowerTransport().write(small_packet.__serialize__())
+
             if n > window_size:
                 break
         self.info_list.sequenceNumber = recordSeq
