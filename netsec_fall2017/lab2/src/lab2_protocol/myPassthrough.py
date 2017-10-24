@@ -65,7 +65,6 @@ class PassThroughc2(StackingProtocol):
         self.lastcorrect = 0
         self.lastAck = 0
         self.close_timer = time.time()
-        self.forceclose = 0
 
     def transmit(self):
         if time.time() - self.timeout_timer > 0.5:
@@ -78,19 +77,8 @@ class PassThroughc2(StackingProtocol):
                 print("client waiting...to...end")
 
         if time.time() - self.close_timer > 5:
-            self.forceclose += 1
-            self.close_timer = time.time()
-            Rip = PEEPPacket()
-            Rip.Type = 3
-            self.seq = self.seq + 1
-            Rip.updateSeqAcknumber(seq=self.seq, ack=1)
-            print("client: Rip sent")
-            Rip.Checksum = Rip.calculateChecksum()
-            self.transport.write(Rip.__serialize__())
-
-            if self.forceclose > 5:
-                self.info_list.readyToclose = True
-                self.higherTransport.close()
+            self.info_list.readyToclose = True
+            self.higherTransport.close()
 
         txDelay = 1
         asyncio.get_event_loop().call_later(txDelay, self.transmit)
@@ -123,7 +111,7 @@ class PassThroughc2(StackingProtocol):
         self._deserializer.update(data)
         for pkt in self._deserializer.nextPackets():
             if isinstance(pkt, PEEPPacket):
-                if pkt.Type == 1 and self.state == 0 and not self.handshake:
+                if pkt.Type == 1 and self.state == 0 and self.handshake == False:
                     print("SYN-ACK received")
                     if pkt.verifyChecksum():
                         ACK = PEEPPacket()
@@ -149,7 +137,12 @@ class PassThroughc2(StackingProtocol):
                         self.higherProtocol().connection_made(self.higherTransport)
                         self.handshake = True
                         self.transmit()
-
+                        # if pkt.Type == 3:
+                        #     RIP_ACK = PEEPPacket()
+                        #     RIP_ACK.Type = 4
+                        #     RIP_ACK.calculateChecksum()
+                        #     print("client: RIP-ACK sent")
+                        #     self.transport.write(RIP_ACK.__serialize__())
 
                         # client and server should be the same, start from here
                 elif self.handshake:
@@ -196,14 +189,26 @@ class PassThroughc2(StackingProtocol):
                                 self.ack_counter = 0
                                 self.higherTransport.setinfo(self.info_list)
                                 print("done")
-                    # improve this at lab3
                     if pkt.Type == 4:
-                        print("get rip ack from server,close transport")
-                        self.info_list.readyToclose = True
-                        self.higherTransport.close()
+                        # if verify_packet(pkt, self.expected_packet):
+                        print("get ripx ack from server")
+                    if pkt.Type == 3:
+                        RIP_ACK = PEEPPacket()
+                        RIP_ACK.Type = 4
+                        RIP_ACK.updateSeqAcknumber(seq=self.seq, ack=pkt.SequenceNumber + 1)
+                        RIP_ACK.calculateChecksum()
+                        print("client: RIPy-ACK sent")
+                        self.transport.write(RIP_ACK.__serialize__())
 
     def connection_lost(self, exc):
 
+        # Rip = PEEPPacket()
+        # Rip.Type = 3  # ACK -  TYPE 2
+        # self.seq = self.seq + 1
+        # Rip.updateSeqAcknumber(seq=self.seq, ack=1)
+        # print("client: ACK sent")
+        # Rip.Checksum = Rip.calculateChecksum()
+        # self.transport.write(Rip.__serialize__())
         self.higherProtocol().connection_lost(exc)
 
 
@@ -237,10 +242,10 @@ class PassThroughs2(StackingProtocol):
                 self.timeout_timer = time.time()
                 self.ack_counter = 0
             else:
-                print("server waiting...for..RIP")
-                if time.time() - self.close_timer > 30:
-                    self.info_list.readyToclose = True
-                    self.higherTransport.close()
+                print("server waiting...to...end")
+        if time.time() - self.close_timer > 5:
+            self.info_list.readyToclose = True
+            self.higherTransport.close()
 
         txDelay = 1
         asyncio.get_event_loop().call_later(txDelay, self.transmit)
@@ -277,7 +282,7 @@ class PassThroughs2(StackingProtocol):
                         self.synackhandler(self.seq, pkt.SequenceNumber + 1)
                         self.state = 1
 
-                elif pkt.Type == 2 and self.state == 1 and not self.handshake:
+                elif pkt.Type == 2 and self.state == 1 and self.handshake == False:
                     if pkt.verifyChecksum():
                         print("got ACK, handshake done")
                         print("------------------------------")
@@ -346,11 +351,9 @@ class PassThroughs2(StackingProtocol):
                         RIP_ACK = PEEPPacket()
                         RIP_ACK.Type = 4
                         RIP_ACK.updateSeqAcknumber(seq=self.seq, ack=pkt.SequenceNumber + 1)
-                        RIP_ACK.Checksum = RIP_ACK.calculateChecksum()
-                        print("server: RIP-ACK sent, ready to close")
+                        RIP_ACK.calculateChecksum()
+                        print("server: RIPx-ACK sent")
                         self.transport.write(RIP_ACK.__serialize__())
-                        self.info_list.readyToclose = True
-                        self.higherTransport.close()
 
     def connection_lost(self, exc):
         self.higherProtocol().connection_lost(exc)
