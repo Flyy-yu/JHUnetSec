@@ -41,14 +41,14 @@ class MyTransport(StackingTransport):
         # print(self.info_list.sequenceNumber)
         small_packet = PEEPPacket()
         recordSeq = self.info_list.sequenceNumber
-        for n in range(0, 5):
+        for n in range(0, window_size):
             place_to_send = self.info_list.sequenceNumber - self.info_list.init_seq
 
             # print("inwrite:")
             # print(self.info_list.sequenceNumber)
             # print(self.info_list.init_seq)
             # print("my front length: " + str(front))
-            if place_to_send + packet_size <= len(self.info_list.outBuffer):
+            if place_to_send + packet_size < len(self.info_list.outBuffer):
                 # print("it should not be here")
                 packet_data = self.info_list.outBuffer[place_to_send:place_to_send + packet_size]
                 small_packet.SequenceNumber = self.info_list.sequenceNumber
