@@ -1,5 +1,5 @@
 import time
-from .MyProtocolTransport import *
+from MyProtocolTransport import *
 import logging
 import asyncio
 
@@ -7,27 +7,60 @@ import asyncio
 # logging.getLogger().setLevel(logging.NOTSET)  # this logs *everything*
 # logging.getLogger().addHandler(logging.StreamHandler())  # logs to stderr
 
+# State machine for client SL
+# 0: intial state, send C → S: PlsHello(Nc, [C_Certs])
+# 1: receive PlsHello, send C->S:  PlsKeyExchange( {PKc}S_public, Ns+1 )
+# 2: receive PlsKeyExchange, send PlsHandshakeDone
+# 3: receive PlsHandshakeDone, handshake done
 
+# M1, C->S:  PlsHello(Nc, [C_Certs])
+# M2, S->C:  PlsHello(Ns, [S_Certs])
+# M3, C->S:  PlsKeyExchange( {PKc}S_public, Ns+1 )
+# M4, S->C:  PlsKeyExchange( {PKs}C_public, Nc+1 )
+# M5, C->S:  PlsHandshakeDone( Sha1(M1, M2, M3, M4) )
+# M6, S->C:  PlsHandshakeDone( Sha1(M1, M2, M3, M4) )
 class PassThroughc1(StackingProtocol):
     def __init__(self):
         self.transport = None
+        self.handshake = False
+        self.higherTransport = None
+        self._deserializer = PacketType.Deserializer()
+        self.state = 0
 
     def connection_made(self, transport):
         self.transport = transport
-        higherTransport = StackingTransport(self.transport)
-        self.higherProtocol().connection_made(higherTransport)
+        handshake = PlsHello()
+        handshake.Nonce = handshake.generateNonce(64)
+        handshake.Certs = handshake.generateCerts()
+        HANDSHAKEbyte = handshake.__serialize__()
+        self.transport.write(HANDSHAKEbyte)
+        print("client: PlsHello sent")
+        #higherTransport = StackingTransport(self.transport)
+        #self.higherProtocol().connection_made(higherTransport)
+
 
     def data_received(self, data):
-        self.higherProtocol().data_received(data)
+        #self.higherProtocol().data_received(data)
+        self._deserializer.update(data)
+        for pkt in self._deserializer.nextPackets():
+            if isinstance(pkt, PlsHello) and self.state == 1:
+
+
 
     def connection_lost(self, exc):
         self.higherProtocol().connection_lost(exc)
 
 
-#
+# State machine for server SL
+# 0: initial state, wait for client_handshake
+# 1:
 class PassThroughs1(StackingProtocol):
     def __init__(self):
         self.transport = None
+        self.handshake = False
+        self.higherTransport = None
+        self._deserializer = PacketType.Deserializer()
+        self.state = 0
 
     def connection_made(self, transport):
         self.transport = transport
@@ -389,3 +422,4 @@ def generate_ACK(seq_number, ack_number):
     # # Create MyProtocolPackets
     #     for each pkt in MyProtocolPackets:
     #         self.lowerTransport().write(pkt.__serialize__())
+

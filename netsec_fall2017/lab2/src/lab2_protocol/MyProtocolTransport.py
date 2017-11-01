@@ -1,5 +1,5 @@
 from playground.network.common import *
-from .mypacket import *
+from mypacket import *
 
 packet_size = 1000
 window_size = 5
