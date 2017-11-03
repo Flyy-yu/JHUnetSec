@@ -94,7 +94,14 @@ class PEEPPacket(PacketType):
         oauth_timestamp, oauth_nonce = str(nonce.time), nonce.hex
         return oauth_nonce, oauth_timestamp'''
 
-class PlsHello(PacketType):
+class PacketBaseType():
+    DEFINITION_IDENTIFIER = "netsecfall2017.pls.base"
+    DEFINITION_VERSION = "1.0"
+    FIELDS = []
+
+
+
+class PlsHello(PacketBaseType):
     DEFINITION_IDENTIFIER = "netsecfall2017.pls.hello"
     DEFINITION_VERSION = "1.0"
     FIELDS = [
@@ -130,50 +137,39 @@ class PlsHello(PacketType):
         #    crypto.dump_privatekey(crypto.FILETYPE_PEM, k))
         return cert_buffer
 
-    def calculateChecksum(self):
-        oldChecksum = self.Checksum
-        self.Checksum = 0
-        bytes = self.__serialize__()
-        self.Checksum = oldChecksum
-        return zlib.adler32(bytes) & 0xffff
 
-    def updateChecksum(self):
-        self.Checksum = self.calculateChecksum()
-
-    def verifyChecksum(self):
-        return self.Checksum == self.calculateChecksum()
-
-class PlsKeyExchange(PacketType):
-    DEFINITION_IDENTIFIER = "netsecfall2017.pls.keyexchange1"
+class PlsKeyExchange(PacketBaseType):
+    DEFINITION_IDENTIFIER = "netsecfall2017.pls.keyexchange"
     DEFINITION_VERSION = "1.0"
     FIELDS = [
-        ("Pre-Key", BUFFER),
-        ("NoncePlusOne", BUFFER),
+        ("PreKey", BUFFER),
+        ("NoncePlusOne", UINT64),
     ]
+    def generatePrekey(self):
+        key_buffer = ""
+        return key_buffer
 
-class PlsHandshakeDone(PacketType):
-    DEFINITION_IDENTIFIER = "netsecfall2017.pls.keyexchange2"
-    DEFINITION_VERSION = "1.0"
-    FIELDS = [
-        ("ValidationHash", BUFFER)
-    ]
 
-class PlsData(PacketType):
-    DEFINITION_IDENTIFIER = "netsecfall2017.pls.data1"
-    DEFINITION_VERSION = "1.0"
-    FIELDS = [
-        ("Ciphertext", BUFFER),
-        ("Mac", BUFFER)
-    ]
 
-class PlsClose(PacketType):
-    DEFINITION_IDENTIFIER = "netsecfall2017.pls.data2"
-    DEFINITION_VERSION = "1.0"
-    FIELDS = [
-        ("Error", STRING({Optional:True}))
-    ]
-# Types
-# -----------------------------
-# ClientHello 	Type 0
-# ServerHello	Type 1
-# EncData 	Type 2
+
+class PlsHandshakeDone(PacketBaseType):
+  DEFINITION_IDENTIFIER = "netsecfall2017.pls.handshakedone"
+  DEFINITION_VERSION = "1.0"
+  FIELDS = [
+    ("ValidationHash", BUFFER)
+  ]
+
+class PlsData(PacketBaseType):
+  DEFINITION_IDENTIFIER = "netsecfall2017.pls.data"
+  DEFINITION_VERSION = "1.0"
+  FIELDS = [
+    ("Ciphertext", BUFFER),
+    ("Mac", BUFFER)
+  ]
+
+class PlsClose(PacketBaseType):
+  DEFINITION_IDENTIFIER = "netsecfall2017.pls.close"
+  DEFINITION_VERSION = "1.0"
+  FIELDS = [
+    ("Error", STRING({Optional: True}))
+  ]
