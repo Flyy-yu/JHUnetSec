@@ -150,7 +150,7 @@ class PassThroughs1(StackingProtocol):
                     self.higherProtocol().connection_made(self.higherTransport)
                     self.state = 3
                     self.handshake = True
-                
+
 
     def connection_lost(self, exc):
         self.higherProtocol().connection_lost(exc)
