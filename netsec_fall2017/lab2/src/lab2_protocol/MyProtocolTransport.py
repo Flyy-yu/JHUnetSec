@@ -74,3 +74,10 @@ class MyTransport(StackingTransport):
 
     def get_data(self):
         return self.info_list.data
+
+class PLSTransport(StackingTransport):
+    def write(self, data):
+        print("PLS transport got data")
+
+
+

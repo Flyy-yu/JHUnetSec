@@ -6,8 +6,8 @@ import hashlib
 from .CertFactory import *
 
 
-# logging.getLogger().setLevel(logging.NOTSET)  # this logs *everything*
-# logging.getLogger().addHandler(logging.StreamHandler())  # logs to stderr
+logging.getLogger().setLevel(logging.NOTSET)  # this logs *everything*
+logging.getLogger().addHandler(logging.StreamHandler())  # logs to stderr
 
 
 
@@ -24,12 +24,14 @@ from .CertFactory import *
 # 1: receive PlsHello, send C->S:  PlsKeyExchange( {PKc}S_public, Ns+1 )
 # 2: receive PlsKeyExchange, send PlsHandshakeDone
 # 3: receive PlsHandshakeDone, handshake done
+
+
 class PassThroughc1(StackingProtocol):
     def __init__(self):
         self.transport = None
         self.handshake = False
         self.higherTransport = None
-        self._deserializer = PacketBaseType.Deserializer()
+       # self._deserializer = PacketBaseType.Deserializer()
         self.state = 0
         self.C_Nonce = 0
         self.S_Nonce = 0
@@ -39,25 +41,24 @@ class PassThroughc1(StackingProtocol):
         self.hashresult = hashlib.sha1()
 
     def connection_made(self, transport):
-        print("conn made c1")
-        self.transport = transport
-        higherTransport = StackingTransport(self.transport)
-        self.higherProtocol().connection_made(higherTransport)
-        '''print("SL connection made")
+        print("SL connection made")
         self.transport = transport
         helloPkt = PlsHello()
         self.C_Nonce = helloPkt.generateNonce(64)
+        print(self.C_Nonce)
         helloPkt.Nonce = self.C_Nonce
-        helloPkt.Certs = helloPkt.generateCerts()
+        #helloPkt.Certs = helloPkt.generateCerts()
+        helloPkt.Certs = [b'cacert',b'cert']
         self.hashresult.update(bytes(helloPkt.__serialize__()))
+
         self.transport.write(helloPkt.__serialize__())
         print("client: PlsHello sent")
         #higherTransport = StackingTransport(self.transport)
-        #self.higherProtocol().connection_made(higherTransport)'''
+        #self.higherProtocol().connection_made(higherTransport)
 
 
     def data_received(self, data):
-        '''#self.higherProtocol().data_received(data)
+        #self.higherProtocol().data_received(data)
         self._deserializer.update(data)
         for pkt in self._deserializer.nextPackets():
             if isinstance(pkt, PlsHello) and self.state == 0:
@@ -91,8 +92,7 @@ class PassThroughc1(StackingProtocol):
                     self.state = 3
                     self.handshake = True
             if self.handshake:
-                self.higherProtocol().data_received(data)'''
-        self.higherProtocol().data_received(data)
+                self.higherProtocol().data_received(data)
 
     def connection_lost(self, exc):
         self.higherProtocol().connection_lost(exc)
@@ -110,7 +110,7 @@ class PassThroughs1(StackingProtocol):
         self.transport = None
         self.handshake = False
         self.higherTransport = None
-        self._deserializer = PacketBaseType.Deserializer()
+      #  self._deserializer = PacketBaseType.Deserializer()
         self.state = 0
         self.C_Nonce = 0
         self.S_Nonce = 0
@@ -120,15 +120,12 @@ class PassThroughs1(StackingProtocol):
 
     def connection_made(self, transport):
         print("SL connection made server")
-        #self.transport = transport
-
         self.transport = transport
-        higherTransport = StackingTransport(self.transport)
-        self.higherProtocol().connection_made(higherTransport)
+
 
 
     def data_received(self, data):
-        '''self._deserializer.update(data)
+        self._deserializer.update(data)
         for pkt in self._deserializer.nextPackets():
             if isinstance(pkt, PlsHello) and self.state == 0:
                 self.C_Nonce = pkt.Nonce
@@ -167,8 +164,7 @@ class PassThroughs1(StackingProtocol):
                     self.state = 3
                     self.handshake = True
             if self.handshake:
-                self.higherProtocol().data_received(data)'''
-        self.higherProtocol().data_received(data)
+                self.higherProtocol().data_received(data)
 
 
 
@@ -182,6 +178,64 @@ class PassThroughs1(StackingProtocol):
     def decrypto(self):
         debytes = b''
         return debytes
+
+
+
+
+
+'''
+class PassThroughc1(StackingProtocol):
+    def __init__(self):
+        self.transport = None
+        self.handshake = False
+        self.higherTransport = None
+        self._deserializer = PacketBaseType.Deserializer()
+        self.state = 0
+        self.C_Nonce = 0
+        self.S_Nonce = 0
+        self.S_Certs = []
+        self.C_Certs = []
+        self.Pks = []
+        self.hashresult = hashlib.sha1()
+
+
+    def connection_made(self, transport):
+        print("sl client------")
+        self.transport = transport
+        higherTransport = StackingTransport(self.transport)
+        self.higherProtocol().connection_made(higherTransport)
+
+    def data_received(self, data):
+        self.higherProtocol().data_received(data)
+
+    def connection_lost(self, exc):
+        self.higherProtocol().connection_lost(exc)
+
+
+#
+class PassThroughs1(StackingProtocol):
+    def __init__(self):
+        self.transport = None
+
+    def connection_made(self, transport):
+        self.transport = transport
+        higherTransport = StackingTransport(self.transport)
+        self.higherProtocol().connection_made(higherTransport)
+
+    def data_received(self, data):
+        self.higherProtocol().data_received(data)
+
+    def connection_lost(self, exc):
+        self.higherProtocol().connection_lost(exc)
+
+'''
+
+
+
+
+
+
+
 
 
 #

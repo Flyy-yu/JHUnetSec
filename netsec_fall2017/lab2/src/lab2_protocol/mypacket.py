@@ -94,7 +94,7 @@ class PEEPPacket(PacketType):
         oauth_timestamp, oauth_nonce = str(nonce.time), nonce.hex
         return oauth_nonce, oauth_timestamp'''
 
-class PacketBaseType():
+class PacketBaseType(PacketType):
     DEFINITION_IDENTIFIER = "netsecfall2017.pls.base"
     DEFINITION_VERSION = "1.0"
     FIELDS = []
