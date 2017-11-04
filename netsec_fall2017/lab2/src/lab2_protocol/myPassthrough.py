@@ -3,6 +3,7 @@ from MyProtocolTransport import *
 import logging
 import asyncio
 import hashlib
+from CertFactory import *
 
 
 # logging.getLogger().setLevel(logging.NOTSET)  # this logs *everything*
@@ -83,6 +84,8 @@ class PassThroughc1(StackingProtocol):
                     self.higherProtocol().connection_made(self.higherTransport)
                     self.state = 3
                     self.handshake = True
+            if self.handshake:
+                self.higherProtocol().data_received(data)
 
     def connection_lost(self, exc):
         self.higherProtocol().connection_lost(exc)
@@ -150,10 +153,21 @@ class PassThroughs1(StackingProtocol):
                     self.higherProtocol().connection_made(self.higherTransport)
                     self.state = 3
                     self.handshake = True
+            if self.handshake:
+                self.higherProtocol().data_received(data)
+
 
 
     def connection_lost(self, exc):
         self.higherProtocol().connection_lost(exc)
+
+    def encrypto(self):
+        enbytes = b''
+        return enbytes
+
+    def decrypto(self):
+        debytes = b''
+        return debytes
 
 
 #
