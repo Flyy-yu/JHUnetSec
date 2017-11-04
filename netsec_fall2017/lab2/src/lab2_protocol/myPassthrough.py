@@ -1,9 +1,9 @@
 import time
-from MyProtocolTransport import *
+from .MyProtocolTransport import *
 import logging
 import asyncio
 import hashlib
-from CertFactory import *
+from .CertFactory import *
 
 
 # logging.getLogger().setLevel(logging.NOTSET)  # this logs *everything*
@@ -39,6 +39,7 @@ class PassThroughc1(StackingProtocol):
         self.hashresult = hashlib.sha1()
 
     def connection_made(self, transport):
+        print("SL connection made")
         self.transport = transport
         helloPkt = PlsHello()
         self.C_Nonce = helloPkt.generateNonce(64)
@@ -81,7 +82,8 @@ class PassThroughc1(StackingProtocol):
                 # check hash
                 if self.hashresult.hexdigest() == pkt.ValidationHash:
                     print("client: Hash Validated, handshake done!")
-                    self.higherProtocol().connection_made(self.higherTransport)
+                    higherTransport = StackingTransport(self.transport)
+                    self.higherProtocol().connection_made(higherTransport)
                     self.state = 3
                     self.handshake = True
             if self.handshake:
@@ -112,6 +114,7 @@ class PassThroughs1(StackingProtocol):
         self.hashresult = hashlib.sha1()
 
     def connection_made(self, transport):
+        print("SL connection made server")
         self.transport = transport
 
 
@@ -150,7 +153,8 @@ class PassThroughs1(StackingProtocol):
                 # check hash
                 if self.hashresult.hexdigest() == pkt.ValidationHash:
                     print("server: Hash Validated, handshake done!")
-                    self.higherProtocol().connection_made(self.higherTransport)
+                    higherTransport = StackingTransport(self.transport)
+                    self.higherProtocol().connection_made(higherTransport)
                     self.state = 3
                     self.handshake = True
             if self.handshake:

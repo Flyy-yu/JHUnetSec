@@ -1,4 +1,4 @@
-from lab2a import *
+from .lab2a import *
 
 
 echoArgs = {}
