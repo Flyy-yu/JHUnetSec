@@ -31,7 +31,7 @@ class PassThroughc1(StackingProtocol):
         self.transport = None
         self.handshake = False
         self.higherTransport = None
-       # self._deserializer = PacketBaseType.Deserializer()
+        self._deserializer = PacketBaseType.Deserializer()
         self.state = 0
         self.C_Nonce = 0
         self.S_Nonce = 0
@@ -44,7 +44,7 @@ class PassThroughc1(StackingProtocol):
         print("SL connection made")
         self.transport = transport
         helloPkt = PlsHello()
-        self.C_Nonce = helloPkt.generateNonce(64)
+        self.C_Nonce = random.getrandbits(64)
         print(self.C_Nonce)
         helloPkt.Nonce = self.C_Nonce
         #helloPkt.Certs = helloPkt.generateCerts()
@@ -67,7 +67,7 @@ class PassThroughc1(StackingProtocol):
                 self.S_Nonce = pkt.Nonce
                 self.S_Certs = pkt.Certs
                 keyExchange = PlsKeyExchange()
-                keyExchange.PreKey = keyExchange.generatePrekey()
+                keyExchange.PreKey = b'prekeyclient'
                 keyExchange.NoncePlusOne = self.S_Nonce + 1
                 self.state = 1
                 self.hashresult.update(bytes(keyExchange.__serialize__()))
@@ -76,21 +76,23 @@ class PassThroughc1(StackingProtocol):
                 self.hashresult.update(bytes(pkt.__serialize__()))
                 print("client: PlsKeyExchange received")
                 #check nc
-                if pkt.Nonce == self.C_Nonce + 1:
+                if pkt.NoncePlusOne == self.C_Nonce + 1:
                     print("client: check NC+1")
-                    self.Pks = pkt.Prekey
+                    self.Pks = pkt.PreKey
                     hdshkdone = PlsHandshakeDone()
-                    hdshkdone.ValidationHash = self.hashresult.hexdigest()
+                    hdshkdone.ValidationHash = self.hashresult.digest()
                     self.state = 2
-                    self.transport.write(keyExchange.__serialize__())
+                    self.transport.write(hdshkdone.__serialize__())
             elif isinstance(pkt, PlsHandshakeDone) and self.state == 2:
                 # check hash
-                if self.hashresult.hexdigest() == pkt.ValidationHash:
-                    print("client: Hash Validated, handshake done!")
+                if self.hashresult.digest() == pkt.ValidationHash:
+                    print("---client: Hash Validated, handshake done!---")
                     higherTransport = StackingTransport(self.transport)
                     self.higherProtocol().connection_made(higherTransport)
                     self.state = 3
                     self.handshake = True
+                else:
+                    print("Hash validated error!")
             if self.handshake:
                 self.higherProtocol().data_received(data)
 
@@ -110,7 +112,7 @@ class PassThroughs1(StackingProtocol):
         self.transport = None
         self.handshake = False
         self.higherTransport = None
-      #  self._deserializer = PacketBaseType.Deserializer()
+        self._deserializer = PacketBaseType.Deserializer()
         self.state = 0
         self.C_Nonce = 0
         self.S_Nonce = 0
@@ -130,10 +132,11 @@ class PassThroughs1(StackingProtocol):
             if isinstance(pkt, PlsHello) and self.state == 0:
                 self.C_Nonce = pkt.Nonce
                 self.C_Certs = pkt.Certs
-                helloPkt = PlsHello
-                self.S_Nonce = helloPkt.generateNonce(64)
+                helloPkt = PlsHello()
+                self.S_Nonce = random.getrandbits(64)
+
                 helloPkt.Nonce = self.S_Nonce
-                helloPkt.Certs = helloPkt.generateCerts()
+                helloPkt.Certs = [b'servercert',b'cert']
                 self.hashresult.update(bytes(helloPkt.__serialize__()))
                 self.state = 1
                 self.transport.write(helloPkt.__serialize__())
@@ -141,11 +144,11 @@ class PassThroughs1(StackingProtocol):
             elif isinstance(pkt, PlsKeyExchange) and self.state ==1:
                 self.hashresult.update(bytes(pkt.__serialize__()))
                 # check nc
-                if pkt.Nonce == self.S_Nonce + 1:
+                if pkt.NoncePlusOne == self.S_Nonce + 1:
                     print("server: check NC+1")
-                    self.Pks = pkt.Prekey
+                    self.Pks = pkt.PreKey
                     keyExchange = PlsKeyExchange()
-                    keyExchange.PreKey = keyExchange.generatePrekey()
+                    keyExchange.PreKey = b'prekeyserver'
                     keyExchange.NoncePlusOne = self.C_Nonce + 1
                     self.hashresult.update(bytes(keyExchange.__serialize__()))
                     self.state = 2
@@ -155,14 +158,17 @@ class PassThroughs1(StackingProtocol):
             elif isinstance(pkt, PlsHandshakeDone) and self.state == 2:
                 self.hashresult.update(bytes(pkt.__serialize__()))
                 hdshkdone = PlsHandshakeDone()
-                hdshkdone.ValidationHash = self.hashresult.hexdigest()
+                hdshkdone.ValidationHash = self.hashresult.digest()
+                print("server: Reveive handshake done")
                 # check hash
-                if self.hashresult.hexdigest() == pkt.ValidationHash:
+                if self.hashresult.digest() == pkt.ValidationHash:
                     print("server: Hash Validated, handshake done!")
                     higherTransport = StackingTransport(self.transport)
                     self.higherProtocol().connection_made(higherTransport)
                     self.state = 3
                     self.handshake = True
+                else:
+                    print("Hash validated error!")
             if self.handshake:
                 self.higherProtocol().data_received(data)
 
