@@ -187,63 +187,6 @@ class PassThroughs1(StackingProtocol):
 
 
 
-
-
-'''
-class PassThroughc1(StackingProtocol):
-    def __init__(self):
-        self.transport = None
-        self.handshake = False
-        self.higherTransport = None
-        self._deserializer = PacketBaseType.Deserializer()
-        self.state = 0
-        self.C_Nonce = 0
-        self.S_Nonce = 0
-        self.S_Certs = []
-        self.C_Certs = []
-        self.Pks = []
-        self.hashresult = hashlib.sha1()
-
-
-    def connection_made(self, transport):
-        print("sl client------")
-        self.transport = transport
-        higherTransport = StackingTransport(self.transport)
-        self.higherProtocol().connection_made(higherTransport)
-
-    def data_received(self, data):
-        self.higherProtocol().data_received(data)
-
-    def connection_lost(self, exc):
-        self.higherProtocol().connection_lost(exc)
-
-
-#
-class PassThroughs1(StackingProtocol):
-    def __init__(self):
-        self.transport = None
-
-    def connection_made(self, transport):
-        self.transport = transport
-        higherTransport = StackingTransport(self.transport)
-        self.higherProtocol().connection_made(higherTransport)
-
-    def data_received(self, data):
-        self.higherProtocol().data_received(data)
-
-    def connection_lost(self, exc):
-        self.higherProtocol().connection_lost(exc)
-
-'''
-
-
-
-
-
-
-
-
-
 #
 
 
