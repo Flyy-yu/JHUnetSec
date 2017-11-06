@@ -89,12 +89,10 @@ class PassThroughc1(StackingProtocol):
                     print("-------------client: Hash Validated, handshake done!-------------")
                     #self.higherTransport = StackingTransport
                     #higherTransport = StackingTransport(self.transport)
-                    self.higherTransport = PLSTransport(self.transport)
-
-                    self.higherProtocol().connection_made(self.higherTransport)
                     self.state = 3
                     self.handshake = True
-                    self.higherTransport.sent_data()
+                    self.higherTransport = PLSTransport(self.transport)
+                    self.higherProtocol().connection_made(self.higherTransport)
                     print("client higher sent data")
                 else:
                     print("Hash validated error!")
@@ -167,14 +165,11 @@ class PassThroughs1(StackingProtocol):
                 # check hash
                 if self.hashresult.digest() == pkt.ValidationHash:
                     print("server: Hash Validated, handshake done!")
-                    #higherTransport = StackingTransport(self.transport)
-                    #self.higherProtocol().connection_made(higherTransport)
-
-                    self.higherTransport = PLSTransport(self.transport)
-                    self.higherProtocol().connection_made(self.higherTransport)
                     self.state = 3
                     self.handshake = True
-                    self.higherTransport.sent_data()
+                    self.transport.write(hdshkdone.__serialize__())
+                    self.higherTransport = PLSTransport(self.transport)
+                    self.higherProtocol().connection_made(self.higherTransport)
                     print("server: higher sent data")
                 else:
                     print("Hash validated error!")
