@@ -86,15 +86,21 @@ class PassThroughc1(StackingProtocol):
             elif isinstance(pkt, PlsHandshakeDone) and self.state == 2:
                 # check hash
                 if self.hashresult.digest() == pkt.ValidationHash:
-                    print("---client: Hash Validated, handshake done!---")
-                    higherTransport = StackingTransport(self.transport)
-                    self.higherProtocol().connection_made(higherTransport)
+                    print("-------------client: Hash Validated, handshake done!-------------")
+                    #self.higherTransport = StackingTransport
+                    #higherTransport = StackingTransport(self.transport)
+                    self.higherTransport = PLSTransport(self.transport)
+
+                    self.higherProtocol().connection_made(self.higherTransport)
                     self.state = 3
                     self.handshake = True
+                    self.higherTransport.sent_data()
+                    print("client higher sent data")
                 else:
                     print("Hash validated error!")
-            if self.handshake:
-                self.higherProtocol().data_received(data)
+            elif isinstance(pkt, PlsData) and self.handshake:
+                # plaintext = dec
+                self.higherProtocol().data_received(pkt.Ciphertext)
 
     def connection_lost(self, exc):
         self.higherProtocol().connection_lost(exc)
@@ -161,14 +167,20 @@ class PassThroughs1(StackingProtocol):
                 # check hash
                 if self.hashresult.digest() == pkt.ValidationHash:
                     print("server: Hash Validated, handshake done!")
-                    higherTransport = StackingTransport(self.transport)
-                    self.higherProtocol().connection_made(higherTransport)
+                    #higherTransport = StackingTransport(self.transport)
+                    #self.higherProtocol().connection_made(higherTransport)
+
+                    self.higherTransport = PLSTransport(self.transport)
+                    self.higherProtocol().connection_made(self.higherTransport)
                     self.state = 3
                     self.handshake = True
+                    self.higherTransport.sent_data()
+                    print("server: higher sent data")
                 else:
                     print("Hash validated error!")
-            if self.handshake:
-                self.higherProtocol().data_received(data)
+            elif isinstance(pkt, PlsData) and self.handshake:
+                # plaintext = dec
+                self.higherProtocol().data_received(pkt.Ciphertext)
 
 
 

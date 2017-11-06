@@ -76,8 +76,14 @@ class MyTransport(StackingTransport):
         return self.info_list.data
 
 class PLSTransport(StackingTransport):
+
     def write(self, data):
+        PLSpacket = PlsData()
         print("PLS transport got data")
+        PLSpacket.Ciphertext = data
+        PLSpacket.Mac = b'mac'
+        self.lowerTransport().write(PLSpacket.__serialize__())
+
 
 
 
