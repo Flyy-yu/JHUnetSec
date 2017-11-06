@@ -38,7 +38,6 @@ class PassThroughc1(StackingProtocol):
         self.C_Certs = []
         self.Pks = []
         self.hashresult = hashlib.sha1()
-        self.hvalue = b''
 
     def connection_made(self, transport):
         print("SL connection made")
