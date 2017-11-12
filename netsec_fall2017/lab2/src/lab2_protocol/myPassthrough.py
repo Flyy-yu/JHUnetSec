@@ -4,11 +4,11 @@ import logging
 import asyncio
 import hashlib
 from .CertFactory import *
-
+from Crypto.PublicKey import RSA
+from playground.common.CipherUtil import *
 
 logging.getLogger().setLevel(logging.NOTSET)  # this logs *everything*
 logging.getLogger().addHandler(logging.StreamHandler())  # logs to stderr
-
 
 # M1, C->S:  PlsHello(Nc, [C_Certs])
 # M2, S->C:  PlsHello(Ns, [S_Certs])
@@ -86,7 +86,7 @@ class PassThroughc1(StackingProtocol):
             elif isinstance(pkt, PlsHandshakeDone) and self.state == 2:
                 # check hash
                 if self.hashresult.digest() == pkt.ValidationHash:
-                    print("-------------client: Hash Validated, handshake done!-------------")
+                    print("-------------client: Hash Validated, PLS handshake done!-------------")
                     #self.higherTransport = StackingTransport
                     #higherTransport = StackingTransport(self.transport)
                     self.state = 3
@@ -164,13 +164,12 @@ class PassThroughs1(StackingProtocol):
                 print("server: Reveive handshake done")
                 # check hash
                 if self.hashresult.digest() == pkt.ValidationHash:
-                    print("server: Hash Validated, handshake done!")
                     self.state = 3
                     self.handshake = True
                     self.transport.write(hdshkdone.__serialize__())
                     self.higherTransport = PLSTransport(self.transport)
                     self.higherProtocol().connection_made(self.higherTransport)
-                    print("server: higher sent data")
+                    print("-------------server: Hash Validated, PLS handshake done!-------------")
                 else:
                     print("Hash validated error!")
             elif isinstance(pkt, PlsData) and self.handshake:

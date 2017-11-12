@@ -1,5 +1,6 @@
 from playground.network.common import *
 from .mypacket import *
+from .CertFactory import *
 
 packet_size = 1000
 window_size = 5
@@ -83,6 +84,10 @@ class PLSTransport(StackingTransport):
         PLSpacket.Ciphertext = data
         PLSpacket.Mac = b'mac'
         self.lowerTransport().write(PLSpacket.__serialize__())
+
+    def encrypto_data(self, data):
+
+        return ciphertext
 
 
 
