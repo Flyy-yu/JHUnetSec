@@ -82,13 +82,18 @@ class PLSTransport(StackingTransport):
     def write(self, data):
         PLSpacket = PlsData()
         print("PLS transport got data")
-        PLSpacket.Ciphertext = self.encrypto_data(data)
-        PLSpacket.Mac = b'mac'
+        ciphertext = self.encrypto_data(data)
+        PLSpacket.Ciphertext = ciphertext
+
+        hm1 = HMAC.new(self.mac, digestmod=SHA256)
+        hm1.update(ciphertext)
+        PLSpacket.Mac = hm1.digest()
         self.lowerTransport().write(PLSpacket.__serialize__())
 
-    def get_info(self, key, iv):
+    def get_info(self, key, iv, mk):
         self.key = key
         self.iv = iv
+        self.mac = mk
 
     def encrypto_data(self, data):
         assert len(self.key) == 32

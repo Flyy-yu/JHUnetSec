@@ -124,15 +124,19 @@ class PassThroughc1(StackingProtocol):
                     self.MKc = self.block_bytes[128:160]
                     self.MKs = self.block_bytes[160:192]
 
-
                     self.higherTransport = PLSTransport(self.transport)
-                    self.higherTransport.get_info(self.Ekc, self.IVc)
+                    self.higherTransport.get_info(self.Ekc, self.IVc, self.MKc)
                     self.higherProtocol().connection_made(self.higherTransport)
                     print("client higher sent data")
                 else:
                     print("Hash validated error!")
             elif isinstance(pkt, PlsData) and self.handshake:
                 plaintext = self.decrypt(self.Eks, self.IVs, pkt.Ciphertext)
+                hm1 = HMAC.new(self.MKs, digestmod=SHA256)
+                hm1.update(pkt.Ciphertext)
+                verifyMac = hm1.digest()
+                if (verifyMac == pkt.Mac):
+                    print("--------------Mac Verify---------------")
                 self.higherProtocol().data_received(plaintext)
 
     def connection_lost(self, exc):
@@ -249,13 +253,18 @@ class PassThroughs1(StackingProtocol):
                     self.MKs = self.block_bytes[160:192]
                     self.transport.write(hdshkdone.__serialize__())
                     self.higherTransport = PLSTransport(self.transport)
-                    self.higherTransport.get_info(self.Eks, self.IVs)
+                    self.higherTransport.get_info(self.Eks, self.IVs, self.MKs)
                     self.higherProtocol().connection_made(self.higherTransport)
                     print("-------------server: Hash Validated, PLS handshake done!-------------")
                 else:
                     print("Hash validated error!")
             elif isinstance(pkt, PlsData) and self.handshake:
                 plaintext = self.decrypt(self.Ekc, self.IVc, pkt.Ciphertext)
+                hm1 = HMAC.new(self.MKc, digestmod=SHA256)
+                hm1.update(pkt.Ciphertext)
+                verifyMac = hm1.digest()
+                if(verifyMac == pkt.Mac):
+                    print("--------------Mac Verify---------------")
                 self.higherProtocol().data_received(plaintext)
 
 
