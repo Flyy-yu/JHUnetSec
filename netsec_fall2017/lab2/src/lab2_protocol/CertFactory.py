@@ -6,6 +6,7 @@ from cryptography import x509
 from cryptography.hazmat.primitives.asymmetric import rsa
 from Crypto.Cipher import AES
 from Crypto.Util import Counter
+from Crypto.Hash import HMAC, SHA256
 import binascii
 import hashlib
 from binascii import a2b_hex, b2a_hex, hexlify
@@ -53,7 +54,7 @@ def getRootCert():
 #print(path)
 #print(getPrivateKeyForAddr())
 
-
+#the key length is 128bits
 key_bytes = 32
 
 def encrypt(key,iv, plaintext):
@@ -106,15 +107,17 @@ def main():
     # Returns a dictionary, parse it to get individual fields
     # rootCertificateSubjectDetails = getCertSubject(rootCertificate)
 
-    '''crtObj = crypto.load_certificate(crypto.FILETYPE_PEM, getCert())
+    crtObj = crypto.load_certificate(crypto.FILETYPE_PEM, getCert())
     pubKeyObject = crtObj.get_pubkey()
     pubKeyString = crypto.dump_publickey(crypto.FILETYPE_PEM, pubKeyObject)
-    print(pubKeyString)'''
+    print(pubKeyString)
 
     Nc = random.getrandbits(64)
     Ns = random.getrandbits(64)
     PKc = random.getrandbits(128)
     PKs = random.getrandbits(128)
+    print(type(PKc))
+    print(PKc)
     shash = hashlib.sha1()
     block = []
     #block_0
@@ -148,20 +151,18 @@ def main():
     MKc = block_bytes[128:160]
     MKs = block_bytes[160:192]
 
-
+    #client enc(Ekc,IVc) Mac(Mkc)
     plaintext = "this is a text message"
+    (iv, ciphertext) = encrypt(Ekc, IVc, plaintext)
+    hm1 = HMAC.new(MKc, digestmod=SHA256)
+    hm1.update(ciphertext)
+    print(hm1.digest())
 
-    '''cert = getCertFromBytes(getCert())
-    public_key = cert.public_key()
-    iv = os.urandom(16)
-    print(isinstance(public_key, rsa.RSAPublicKey))
-    print(getCertIssuer(cert))
-    print(getCertSubject(cert))
-    zeroKey = "\x00" * 16  # 16 bytes of 0
-    zeroIv = "\x00" * 16'''
 
-    (iv, ciphertext) = encrypt(Ekc, IVc,'hella')
-    print(decrypt(Ekc, iv, ciphertext))
+
+
+
+    print("Dec: "+str(decrypt(Ekc, iv, ciphertext)))
 
 
 

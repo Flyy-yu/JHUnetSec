@@ -1,4 +1,5 @@
 import time
+import os
 from .MyProtocolTransport import *
 import logging
 import asyncio
@@ -6,6 +7,9 @@ import hashlib
 from .CertFactory import *
 from Crypto.PublicKey import RSA
 from playground.common.CipherUtil import *
+from Crypto.Cipher import AES
+from Crypto.Util import Counter
+from Crypto.Hash import HMAC, SHA256
 
 logging.getLogger().setLevel(logging.NOTSET)  # this logs *everything*
 logging.getLogger().addHandler(logging.StreamHandler())  # logs to stderr
@@ -36,8 +40,11 @@ class PassThroughc1(StackingProtocol):
         self.S_Nonce = 0
         self.S_Certs = []
         self.C_Certs = []
-        self.Pks = []
+        self.PKc = os.urandom(16)
+        self.PKs = b''
         self.hashresult = hashlib.sha1()
+        self.shash = hashlib.sha1()
+        self.block = []
 
     def connection_made(self, transport):
         print("SL connection made")
@@ -49,7 +56,6 @@ class PassThroughc1(StackingProtocol):
         #helloPkt.Certs = helloPkt.generateCerts()
         helloPkt.Certs = [b'cacert',b'cert']
         self.hashresult.update(helloPkt.__serialize__())
-
         self.transport.write(helloPkt.__serialize__())
         print("client: PlsHello sent")
         #higherTransport = StackingTransport(self.transport)
@@ -66,7 +72,7 @@ class PassThroughc1(StackingProtocol):
                 self.S_Nonce = pkt.Nonce
                 self.S_Certs = pkt.Certs
                 keyExchange = PlsKeyExchange()
-                keyExchange.PreKey = b'prekeyclient'
+                keyExchange.PreKey = self.PKc
                 keyExchange.NoncePlusOne = self.S_Nonce + 1
                 self.state = 1
                 self.hashresult.update(keyExchange.__serialize__())
@@ -77,7 +83,7 @@ class PassThroughc1(StackingProtocol):
                 #check nc
                 if pkt.NoncePlusOne == self.C_Nonce + 1:
                     print("client: check NC+1")
-                    self.Pks = pkt.PreKey
+                    self.PKs = pkt.PreKey
                     hdshkdone = PlsHandshakeDone()
                     hdshkdone.ValidationHash = self.hashresult.digest()
                     self.state = 2
@@ -91,17 +97,62 @@ class PassThroughc1(StackingProtocol):
                     #higherTransport = StackingTransport(self.transport)
                     self.state = 3
                     self.handshake = True
+
+                    print(str(self.C_Nonce).encode('utf-8') + str(self.S_Nonce).encode('utf-8') + str(self.PKc).encode('utf-8') + str(self.PKs).encode('utf-8'))
+                    self.shash.update("PLS1.0".encode('utf-8') + str(self.C_Nonce).encode('utf-8') + str(self.S_Nonce).encode('utf-8') + str(self.PKc).encode('utf-8') + str(self.PKs).encode('utf-8'))
+                    self.block.append(self.shash.digest())
+                    # block_1
+                    self.shash.update(str(self.block[0]).encode('utf-8'))
+                    self.block.append(self.shash.digest())
+                    # block_2
+                    self.shash.update(str(self.block[1]).encode('utf-8'))
+                    self.block.append(self.shash.digest())
+                    # block_3
+                    self.shash.update(str(self.block[2]).encode('utf-8'))
+                    self.block.append(self.shash.digest())
+                    # block_4
+                    self.shash.update(str(self.block[3]).encode('utf-8'))
+                    self.block.append(self.shash.digest())
+                    for blo in self.block:
+                        print(blo)
+                    self.block_bytes = hexlify(self.block[0] + self.block[1] + self.block[2] + self.block[3] + self.block[4])
+                    print(len(self.block_bytes))
+                    self.Ekc = self.block_bytes[0:32]
+                    self.Eks = self.block_bytes[32:64]
+                    self.IVc = self.block_bytes[64:96]
+                    self.IVs = self.block_bytes[96:128]
+                    self.MKc = self.block_bytes[128:160]
+                    self.MKs = self.block_bytes[160:192]
+
+
                     self.higherTransport = PLSTransport(self.transport)
+                    self.higherTransport.get_info(self.Ekc, self.IVc)
                     self.higherProtocol().connection_made(self.higherTransport)
                     print("client higher sent data")
                 else:
                     print("Hash validated error!")
             elif isinstance(pkt, PlsData) and self.handshake:
-                # plaintext = dec
-                self.higherProtocol().data_received(pkt.Ciphertext)
+                plaintext = self.decrypt(self.Eks, self.IVs, pkt.Ciphertext)
+                self.higherProtocol().data_received(plaintext)
 
     def connection_lost(self, exc):
         self.higherProtocol().connection_lost(exc)
+
+    def decrypt(self, key, iv, ciphertext):
+        assert len(key) == key_bytes
+
+        # Initialize counter for decryption. iv should be the same as the output of
+        # encrypt().
+        iv_int = int(iv, 16)
+        ctr = Counter.new(AES.block_size * 8, initial_value=iv_int)
+
+        # Create AES-CTR cipher.
+        aes = AES.new(key, AES.MODE_CTR, counter=ctr)
+
+        # Decrypt and return the plaintext.
+        plaintext = aes.decrypt(ciphertext)
+        return plaintext
+
 
 
 
@@ -122,7 +173,11 @@ class PassThroughs1(StackingProtocol):
         self.S_Nonce = 0
         self.S_Certs = []
         self.C_Certs = []
+        self.PKs = os.urandom(16)
+        self.PKc = b''
         self.hashresult = hashlib.sha1()
+        self.shash = hashlib.sha1()
+        self.block = []
 
     def connection_made(self, transport):
         print("SL connection made server")
@@ -149,9 +204,9 @@ class PassThroughs1(StackingProtocol):
                 # check nc
                 if pkt.NoncePlusOne == self.S_Nonce + 1:
                     print("server: check NC+1")
-                    self.Pks = pkt.PreKey
+                    self.PKc = pkt.PreKey
                     keyExchange = PlsKeyExchange()
-                    keyExchange.PreKey = b'prekeyserver'
+                    keyExchange.PreKey = self.PKs
                     keyExchange.NoncePlusOne = self.C_Nonce + 1
                     self.hashresult.update(bytes(keyExchange.__serialize__()))
                     self.state = 2
@@ -166,28 +221,63 @@ class PassThroughs1(StackingProtocol):
                 if self.hashresult.digest() == pkt.ValidationHash:
                     self.state = 3
                     self.handshake = True
+                    print(str(self.C_Nonce).encode('utf-8') + str(self.S_Nonce).encode('utf-8') + str(self.PKc).encode('utf-8') + str(self.PKs).encode('utf-8'))
+                    self.shash.update("PLS1.0".encode('utf-8') + str(self.C_Nonce).encode('utf-8') + str(self.S_Nonce).encode('utf-8') + str(self.PKc).encode('utf-8') + str(self.PKs).encode('utf-8'))
+                    self.block.append(self.shash.digest())
+                    # block_1
+                    self.shash.update(str(self.block[0]).encode('utf-8'))
+                    self.block.append(self.shash.digest())
+                    # block_2
+                    self.shash.update(str(self.block[1]).encode('utf-8'))
+                    self.block.append(self.shash.digest())
+                    # block_3
+                    self.shash.update(str(self.block[2]).encode('utf-8'))
+                    self.block.append(self.shash.digest())
+                    # block_4
+                    self.shash.update(str(self.block[3]).encode('utf-8'))
+                    self.block.append(self.shash.digest())
+                    for blo in self.block:
+                        print(blo)
+                    self.block_bytes = hexlify(
+                        self.block[0] + self.block[1] + self.block[2] + self.block[3] + self.block[4])
+                    print(len(self.block_bytes))
+                    self.Ekc = self.block_bytes[0:32]
+                    self.Eks = self.block_bytes[32:64]
+                    self.IVc = self.block_bytes[64:96]
+                    self.IVs = self.block_bytes[96:128]
+                    self.MKc = self.block_bytes[128:160]
+                    self.MKs = self.block_bytes[160:192]
                     self.transport.write(hdshkdone.__serialize__())
                     self.higherTransport = PLSTransport(self.transport)
+                    self.higherTransport.get_info(self.Eks, self.IVs)
                     self.higherProtocol().connection_made(self.higherTransport)
                     print("-------------server: Hash Validated, PLS handshake done!-------------")
                 else:
                     print("Hash validated error!")
             elif isinstance(pkt, PlsData) and self.handshake:
-                # plaintext = dec
-                self.higherProtocol().data_received(pkt.Ciphertext)
+                plaintext = self.decrypt(self.Ekc, self.IVc, pkt.Ciphertext)
+                self.higherProtocol().data_received(plaintext)
+
 
 
 
     def connection_lost(self, exc):
         self.higherProtocol().connection_lost(exc)
 
-    def encrypto(self):
-        enbytes = b''
-        return enbytes
+    def decrypt(self, key, iv, ciphertext):
+        assert len(key) == key_bytes
 
-    def decrypto(self):
-        debytes = b''
-        return debytes
+        # Initialize counter for decryption. iv should be the same as the output of
+        # encrypt().
+        iv_int = int(iv, 16)
+        ctr = Counter.new(AES.block_size * 8, initial_value=iv_int)
+
+        # Create AES-CTR cipher.
+        aes = AES.new(key, AES.MODE_CTR, counter=ctr)
+
+        # Decrypt and return the plaintext.
+        plaintext = aes.decrypt(ciphertext)
+        return plaintext
 
 
 
