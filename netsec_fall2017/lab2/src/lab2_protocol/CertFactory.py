@@ -174,7 +174,9 @@ def main2():
     print(key.can_encrypt())
     print(key.can_sign())
     print(key.has_private())
-
+    public_key = key.publickey()
+    enc_data = public_key.encrypt(PKs,32)
+    print(enc_data)
 
 if __name__ == "__main__":
     main2()
