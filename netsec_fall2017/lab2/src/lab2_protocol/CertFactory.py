@@ -170,13 +170,21 @@ def main2():
     pubKeyString = crypto.dump_publickey(crypto.FILETYPE_PEM, pubKeyObject)
     print(pubKeyString)
     PKs = os.urandom(16)
+    print("PKs: "+str(PKs))
+    print(type(PKs))
     key = RSA.importKey(pubKeyString)
     print(key.can_encrypt())
     print(key.can_sign())
     print(key.has_private())
     public_key = key.publickey()
     enc_data = public_key.encrypt(PKs,32)
-    print(enc_data)
+    print("Enc: "+str(enc_data))
+
+    private_key = RSA.importKey(getPrivateKeyForAddr())
+    print(private_key.has_private())
+    dec_data = private_key.decrypt(enc_data)
+    print("Dec: "+str(dec_data))
+
 
 if __name__ == "__main__":
     main2()
