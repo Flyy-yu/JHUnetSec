@@ -54,17 +54,16 @@ def getRootCert():
 #print(getPrivateKeyForAddr())
 
 
-key_bytes = 16
+key_bytes = 32
 
-def encrypt(key, plaintext):
+def encrypt(key,iv, plaintext):
     print(len(key))
     assert len(key) == key_bytes
 
     # Choose a random, 16-byte IV.
-    iv = random.new().read(AES.block_size)
 
     # Convert the IV to a Python integer.
-    iv_int = int(binascii.hexlify(iv), 16)
+    iv_int = int(iv, 16)
 
     # Create a new Counter object with IV = iv_int.
     ctr = Counter.new(AES.block_size * 8, initial_value=iv_int)
@@ -83,7 +82,7 @@ def decrypt(key, iv, ciphertext):
 
     # Initialize counter for decryption. iv should be the same as the output of
     # encrypt().
-    iv_int = int(iv.encode('hex'), 16)
+    iv_int = int(iv, 16)
     ctr = Counter.new(AES.block_size * 8, initial_value=iv_int)
 
     # Create AES-CTR cipher.
@@ -137,14 +136,17 @@ def main():
         print(bl)
 
     block_bytes = hexlify(block[0] + block[1] + block[2] + block[3] + block[4])
-    block_bits = bin(int(block_bytes,16))
+    print(len(block_bytes))
+    '''block_bits = bin(int(block_bytes,base=16))
     print(len(block_bits))
     print(type(block_bits))
-    print(block_bits)
-    Ekc = block_bits[0:128]
-    print(len(Ekc))
-    print(Ekc)
-
+    print(block_bits)'''
+    Ekc = block_bytes[0:32]
+    Eks = block_bytes[32:64]
+    IVc = block_bytes[64:96]
+    IVs = block_bytes[96:128]
+    MKc = block_bytes[128:160]
+    MKs = block_bytes[160:192]
 
 
     plaintext = "this is a text message"
@@ -158,8 +160,8 @@ def main():
     zeroKey = "\x00" * 16  # 16 bytes of 0
     zeroIv = "\x00" * 16'''
 
-    #(iv, ciphertext) = encrypt(pubKeyString, 'hella')
-    #print(decrypt(pubKeyString, iv, ciphertext))
+    (iv, ciphertext) = encrypt(Ekc, IVc,'hella')
+    print(decrypt(Ekc, iv, ciphertext))
 
 
 
