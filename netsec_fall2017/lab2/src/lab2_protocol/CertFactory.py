@@ -5,6 +5,9 @@ from playground.common.CipherUtil import *
 from cryptography import x509
 from cryptography.hazmat.primitives.asymmetric import rsa
 from Crypto.Cipher import AES
+from Crypto.PublicKey import RSA
+from Crypto import Random
+
 from Crypto.Util import Counter
 from Crypto.Hash import HMAC, SHA256
 import binascii
@@ -95,8 +98,8 @@ def decrypt(key, iv, ciphertext):
 
 
 
-
-def main():
+#test for aes
+def main1():
     # Loading a Certificate
     # rootCertificate = loadCertFromFile("root.crt")
     # Get issuer details
@@ -156,21 +159,25 @@ def main():
     (iv, ciphertext) = encrypt(Ekc, IVc, plaintext)
     hm1 = HMAC.new(MKc, digestmod=SHA256)
     hm1.update(ciphertext)
-    print(hm1.digest())
+    print("Mac: " + str(hm1.digest()))
+    print("Dec: " + str(decrypt(Ekc, iv, ciphertext)))
 
 
-
-
-
-    print("Dec: "+str(decrypt(Ekc, iv, ciphertext)))
-
-
-
-
+#test for rsa
+def main2():
+    crtObj = crypto.load_certificate(crypto.FILETYPE_PEM, getCert())
+    pubKeyObject = crtObj.get_pubkey()
+    pubKeyString = crypto.dump_publickey(crypto.FILETYPE_PEM, pubKeyObject)
+    print(pubKeyString)
+    PKs = os.urandom(16)
+    key = RSA.importKey(pubKeyString)
+    print(key.can_encrypt())
+    print(key.can_sign())
+    print(key.has_private())
 
 
 if __name__ == "__main__":
-    main()
+    main2()
 
 
 
