@@ -111,5 +111,9 @@ class PLSTransport(StackingTransport):
         return ciphertext
 
 
+    def close(self):
+        self.lowerTransport().close()
+
+
 
 

@@ -152,6 +152,14 @@ class PassThroughc1(StackingProtocol):
                 if (verifyMac == pkt.Mac):
                     print("--------------Mac Verify---------------")
                 self.higherProtocol().data_received(plaintext)
+            elif isinstance(pkt, PlsClose):
+                normal_close = PlsClose()
+                PlsClose.Error = None
+                if pkt == normal_close:
+                    print("\n----------PLS Close: Normal Shut Down!----------")
+                else:
+                    print("\n----------PLS Close: %s----------" % pkt.Error)
+                self.transport.close()
 
     def connection_lost(self, exc):
         self.higherProtocol().connection_lost(exc)
@@ -170,6 +178,15 @@ class PassThroughc1(StackingProtocol):
         # Decrypt and return the plaintext.
         plaintext = aes.decrypt(ciphertext)
         return plaintext
+
+    def verify_certs(self):
+        return 1
+
+    def send_pls_close(self, error_info=None):
+        err_packet = PlsClose()
+        PlsClose.Error = error_info
+        self.transport.write(err_packet.__serialize__())
+
 
 
 
@@ -292,6 +309,15 @@ class PassThroughs1(StackingProtocol):
                 if(verifyMac == pkt.Mac):
                     print("--------------Mac Verify---------------")
                 self.higherProtocol().data_received(plaintext)
+            elif isinstance(pkt, PlsClose):
+                normal_close = PlsClose()
+                PlsClose.Error = None
+                if pkt == normal_close:
+                    print("\n----------PLS Close: Normal Shut Down!----------")
+                else:
+                    print("\n----------PLS Close: %s----------" % pkt.Error)
+                self.transport.close()
+
 
 
 
@@ -313,6 +339,10 @@ class PassThroughs1(StackingProtocol):
         # Decrypt and return the plaintext.
         plaintext = aes.decrypt(ciphertext)
         return plaintext
+    def send_pls_close(self, error_info=None):
+        err_packet = PlsClose()
+        PlsClose.Error = error_info
+        self.transport.write(err_packet.__serialize__())
 
 
 
