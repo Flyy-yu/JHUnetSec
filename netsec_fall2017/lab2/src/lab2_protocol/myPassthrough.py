@@ -39,9 +39,14 @@ class PassThroughc1(StackingProtocol):
         self.C_Nonce = 0
         self.S_Nonce = 0
         self.S_Certs = []
-        self.C_Certs = []
+        self.C_Certs = getClientCert()
         self.PKc = os.urandom(16)
         self.PKs = b''
+        self.C_crtObj = crypto.load_certificate(crypto.FILETYPE_PEM, self.C_Certs[0])
+        self.CPubK = self.C_crtObj.get_pubkey()
+        self.C_pubKeyString = crypto.dump_publickey(crypto.FILETYPE_PEM, self.CPubK)
+        self.C_privKey = getClientKey()
+
         self.hashresult = hashlib.sha1()
         self.shash = hashlib.sha1()
         self.block = []
@@ -54,7 +59,7 @@ class PassThroughc1(StackingProtocol):
         print(self.C_Nonce)
         helloPkt.Nonce = self.C_Nonce
         #helloPkt.Certs = helloPkt.generateCerts()
-        helloPkt.Certs = [b'cacert',b'cert']
+        helloPkt.Certs = self.C_Certs
         self.hashresult.update(helloPkt.__serialize__())
         self.transport.write(helloPkt.__serialize__())
         print("client: PlsHello sent")
@@ -72,7 +77,14 @@ class PassThroughc1(StackingProtocol):
                 self.S_Nonce = pkt.Nonce
                 self.S_Certs = pkt.Certs
                 keyExchange = PlsKeyExchange()
-                keyExchange.PreKey = self.PKc
+                crtObj = crypto.load_certificate(crypto.FILETYPE_PEM, self.S_Certs[0])
+                pubKeyObject = crtObj.get_pubkey()
+                pubKeyString = crypto.dump_publickey(crypto.FILETYPE_PEM, pubKeyObject)
+                key = RSA.importKey(pubKeyString)
+                public_key = key.publickey()
+                Encrypter = PKCS1OAEP_Cipher(key, None, None, None)
+                cipher = Encrypter.encrypt(self.PKc)
+                keyExchange.PreKey = cipher
                 keyExchange.NoncePlusOne = self.S_Nonce + 1
                 self.state = 1
                 self.hashresult.update(keyExchange.__serialize__())
@@ -83,7 +95,9 @@ class PassThroughc1(StackingProtocol):
                 #check nc
                 if pkt.NoncePlusOne == self.C_Nonce + 1:
                     print("client: check NC+1")
-                    self.PKs = pkt.PreKey
+                    CpriK = RSA.importKey(self.C_privKey)
+                    Decrypter = PKCS1OAEP_Cipher(CpriK, None, None, None)
+                    self.PKs = Decrypter.decrypt(pkt.PreKey)
                     hdshkdone = PlsHandshakeDone()
                     hdshkdone.ValidationHash = self.hashresult.digest()
                     self.state = 2
@@ -175,10 +189,14 @@ class PassThroughs1(StackingProtocol):
         self.state = 0
         self.C_Nonce = 0
         self.S_Nonce = 0
-        self.S_Certs = []
+        self.S_Certs = getServerCert()
         self.C_Certs = []
         self.PKs = os.urandom(16)
         self.PKc = b''
+        self.S_crtObj = crypto.load_certificate(crypto.FILETYPE_PEM, self.S_Certs[0])
+        self.SPubK = self.S_crtObj.get_pubkey()
+        self.SPriK = getServerKey()
+        self.S_pubKeyString = crypto.dump_publickey(crypto.FILETYPE_PEM, self.SPubK)
         self.hashresult = hashlib.sha1()
         self.shash = hashlib.sha1()
         self.block = []
@@ -198,7 +216,7 @@ class PassThroughs1(StackingProtocol):
                 self.S_Nonce = random.getrandbits(64)
 
                 helloPkt.Nonce = self.S_Nonce
-                helloPkt.Certs = [b'servercert', b'cert']
+                helloPkt.Certs = self.S_Certs
                 self.hashresult.update(bytes(helloPkt.__serialize__()))
                 self.state = 1
                 self.transport.write(helloPkt.__serialize__())
@@ -208,9 +226,17 @@ class PassThroughs1(StackingProtocol):
                 # check nc
                 if pkt.NoncePlusOne == self.S_Nonce + 1:
                     print("server: check NC+1")
-                    self.PKc = pkt.PreKey
+                    priK = RSA.importKey(self.SPriK)
+                    Decrypter = PKCS1OAEP_Cipher(priK, None, None, None)
+                    self.PKc = Decrypter.decrypt(pkt.PreKey)
                     keyExchange = PlsKeyExchange()
-                    keyExchange.PreKey = self.PKs
+                    crtObj = crypto.load_certificate(crypto.FILETYPE_PEM, self.C_Certs[0])
+                    pubKeyObject = crtObj.get_pubkey()
+                    pubKeyString = crypto.dump_publickey(crypto.FILETYPE_PEM, pubKeyObject)
+                    key = RSA.importKey(pubKeyString)
+                    Encrypter = PKCS1OAEP_Cipher(key, None, None, None)
+                    cipher = Encrypter.encrypt(self.PKs)
+                    keyExchange.PreKey = cipher
                     keyExchange.NoncePlusOne = self.C_Nonce + 1
                     self.hashresult.update(bytes(keyExchange.__serialize__()))
                     self.state = 2

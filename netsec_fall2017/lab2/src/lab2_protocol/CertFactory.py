@@ -6,9 +6,11 @@ from cryptography import x509
 from cryptography.hazmat.primitives.asymmetric import rsa
 from Crypto.Cipher import AES
 from Crypto.PublicKey import RSA
+from Crypto.Cipher.PKCS1_OAEP import PKCS1OAEP_Cipher
 from Crypto import Random
 
 from Crypto.Util import Counter
+from Crypto.Signature import PKCS1_v1_5
 from Crypto.Hash import HMAC, SHA256
 import binascii
 import hashlib
@@ -53,9 +55,53 @@ def getRootCert():
 
     return root_cert
 
+def getClientCert():
+    certs = []
+    with open(path + "/certs/client.cert", "rb") as fp:
+        certs.append(fp.read())
+    fp.close()
+    with open(path + "/certs/signed.cert", "rb") as fp:
+        certs.append((fp.read()))
+    fp.close()
+    with open(path + "/certs/root.crt", "rb") as fp:
+        certs.append((fp.read()))
+    fp.close()
+    print(type(certs[0]))
+    return certs
+
+def getServerCert():
+    certs = []
+    with open(path + "/certs/server.cert", "rb") as fp:
+        certs.append(fp.read())
+    fp.close()
+    with open(path + "/certs/signed.cert", "rb") as fp:
+        certs.append((fp.read()))
+    fp.close()
+    with open(path + "/certs/root.crt", "rb") as fp:
+        certs.append((fp.read()))
+    fp.close()
+    return certs
+
+
+
+def getClientKey():
+    with open(path + "/certs/client.key") as fp:
+        client_key = fp.read()
+    fp.close()
+    return client_key
+
+def getServerKey():
+    with open(path + "/certs/server.key") as fp:
+        server_key = fp.read()
+    fp.close()
+    return server_key
+
+
 #print(root)
 #print(path)
 #print(getPrivateKeyForAddr())
+#print(getClientCert())
+#print(getServerCert())
 
 #the key length is 128bits
 key_bytes = 32
@@ -173,22 +219,82 @@ def main2():
     print("PKs: "+str(PKs))
     print(type(PKs))
     key = RSA.importKey(pubKeyString)
+    Encrypter = PKCS1OAEP_Cipher(key, None, None, None)
+    enc_data = Encrypter.encrypt(PKs)
+    print(enc_data)
+    print(type(enc_data))
+    '''
     print(key.can_encrypt())
     print(key.can_sign())
     print(key.has_private())
     public_key = key.publickey()
     enc_data = public_key.encrypt(PKs,32)
     print("Enc: "+str(enc_data))
-
+    print("Enc"+str(type(enc_data)))
+    '''
     private_key = RSA.importKey(getPrivateKeyForAddr())
     print(private_key.has_private())
-    dec_data = private_key.decrypt(enc_data)
+    Decrypter = PKCS1OAEP_Cipher(private_key, None, None, None)
+    dec_data = Decrypter.decrypt(enc_data)
+    print("Dec"+str(type(dec_data)))
     print("Dec: "+str(dec_data))
+
+def main3():
+    client_cert = getClientCert()
+    crtObj = crypto.load_certificate(crypto.FILETYPE_PEM, client_cert[0])
+    pubKey_client = crtObj.get_pubkey()
+    p_clientstring = crypto.dump_publickey(crypto.FILETYPE_PEM, pubKey_client)
+    print(p_clientstring)
+    p_client = RSA.importKey(p_clientstring)
+    k_client = RSA.importKey(getClientKey())
+
+    PKs = os.urandom(16)
+    enc_data = p_client.encrypt(PKs, 32)
+    print(len(enc_data))
+    print(enc_data[0])
+    print("Enc: " + str(enc_data))
+    dec_data = k_client.decrypt(enc_data)
+    print(dec_data[1])
+    print("Dec: " + str(dec_data))
+    assert PKs == dec_data
+    print("Done")
+
+
 
 
 if __name__ == "__main__":
     main2()
+    # print("Done")
+    a = []
+    a = getClientCert()
+    '''print(type(getClientCert()))
+    print(type([b'a',b'dadf']))
+    print(type(b'a'))
+    print(type(a[0]))
+    print(a)'''
+
+    # print(getServerCert())
 
 
 
 
+# openssl x509 -req -days 360 -in <CSR-for-the-new-device> -CA <your-intermediate-CA-certificate> -CAkey <your-intermediate-CA-key> -out <your-new-certificate> -set_serial <a random number>
+# openssl x509 -req -days 360 -in server.csr -CA signed.cert -CAkey private_key -out server.cert -set_serial 176
+# openssl verify -CAfile RootCert.pem -untrusted Intermediate.pem UserCert.pem
+# openssl verify -verbose -CAfile root.crt -untrusted server.cert signed.cert
+
+# Country Name (2 letter code) [AU]:US
+# State or Province Name (full name) [Some-State]:MD
+# Locality Name (eg, city) []:Baltimore
+# Organization Name (eg, company) [Internet Widgits Pty Ltd]:JHUNetworkSecurityFall2017
+# Organizational Unit Name (eg, section) []:PETF
+# Common Name (e.g. server FQDN or YOUR name) []:20174.1.n
+# Email Address []:<Your email address>
+# Challenge: <LEAVE BLANK>
+# Company: <Your Name>
+
+# python -m test.ThroughputTester [client or server] --reference-stack=lab2_protocol
+
+
+# server 20174.1.6666.1  -set_serial 176
+# client 20174.1.6666.2 -set_serial 41
