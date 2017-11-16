@@ -2,7 +2,6 @@ import playground
 import random
 import sys, time, os, logging, asyncio
 from .myPassthrough import *
-from .lab2.src.lab2_protocol import *
 
 # this is the client
 class MyProtocolClient(asyncio.Protocol):
@@ -92,7 +91,7 @@ class MyProtocolServer(asyncio.Protocol):
 #
 
 def PeepClientFactory():
-    fclient = StackingProtocolFactory(lambda: PassThroughc1(), lambda: PEEPClientProtocol())
+    fclient = StackingProtocolFactory(lambda: PassThroughc1(), lambda: PassThroughc2())
     return fclient
 
 

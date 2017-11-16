@@ -76,6 +76,11 @@ class PassThroughc1(StackingProtocol):
                 self.hashresult.update(pkt.__serialize__())
                 self.S_Nonce = pkt.Nonce
                 self.S_Certs = pkt.Certs
+                if(self.verify_certchain(self.S_Certs)):
+                    print("cert verified")
+                else:
+                    self.send_pls_close()
+                    self.transport.close()
                 keyExchange = PlsKeyExchange()
                 crtObj = crypto.load_certificate(crypto.FILETYPE_PEM, self.S_Certs[0])
                 pubKeyObject = crtObj.get_pubkey()
@@ -187,6 +192,39 @@ class PassThroughc1(StackingProtocol):
         PlsClose.Error = error_info
         self.transport.write(err_packet.__serialize__())
 
+    def verify_certchain(self, certs):
+        X509_list = []
+        crypto_list = []
+        for cert in certs:
+            x509obj = x509.load_pem_x509_certificate(cert, default_backend())
+            X509_list.append(x509obj)
+            cert = crypto.load_certificate(crypto.FILETYPE_PEM, cert)
+            crypto_list.append(cert)
+
+        # verify the issuer and subject
+        for i in range(len(crypto_list) - 1):
+            issuer = crypto_list[i].get_issuer()
+            print(issuer)
+            subject = crypto_list[i + 1].get_subject()
+            print(subject)
+            if issuer == subject:
+                print("issuer and subject verified")
+            else:
+                return False
+
+        # verify the signature sha256
+        for i in range(len(X509_list) - 1):
+            this = X509_list[i]
+            # print(this)
+            # print(this.signature)
+            sig = RSA_SIGNATURE_MAC(X509_list[i + 1].public_key())
+            # print(issuer)
+            if not sig.verify(this.tbs_certificate_bytes, this.signature):
+                return False
+            else:
+                print("signature verified")
+        return True
+
 
 
 
@@ -229,6 +267,11 @@ class PassThroughs1(StackingProtocol):
                 self.hashresult.update(bytes(pkt.__serialize__()))
                 self.C_Nonce = pkt.Nonce
                 self.C_Certs = pkt.Certs
+                if (self.verify_certchain(self.C_Certs)):
+                    print("cert verified")
+                else:
+                    self.send_pls_close()
+                    self.transport.close()
                 helloPkt = PlsHello()
                 self.S_Nonce = random.getrandbits(64)
 
@@ -343,6 +386,38 @@ class PassThroughs1(StackingProtocol):
         err_packet = PlsClose()
         PlsClose.Error = error_info
         self.transport.write(err_packet.__serialize__())
+    def verify_certchain(self, certs):
+        X509_list = []
+        crypto_list = []
+        for cert in certs:
+            x509obj = x509.load_pem_x509_certificate(cert, default_backend())
+            X509_list.append(x509obj)
+            cert = crypto.load_certificate(crypto.FILETYPE_PEM, cert)
+            crypto_list.append(cert)
+
+        # verify the issuer and subject
+        for i in range(len(crypto_list) - 1):
+            issuer = crypto_list[i].get_issuer()
+            print(issuer)
+            subject = crypto_list[i + 1].get_subject()
+            print(subject)
+            if issuer == subject:
+                print("issuer and subject verified")
+            else:
+                return False
+
+        # verify the signature sha256
+        for i in range(len(X509_list) - 1):
+            this = X509_list[i]
+            # print(this)
+            # print(this.signature)
+            sig = RSA_SIGNATURE_MAC(X509_list[i + 1].public_key())
+            # print(issuer)
+            if not sig.verify(this.tbs_certificate_bytes, this.signature):
+                return False
+            else:
+                print("signature verified")
+        return True
 
 
 

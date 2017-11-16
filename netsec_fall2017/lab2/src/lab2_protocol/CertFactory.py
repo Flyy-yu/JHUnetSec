@@ -258,15 +258,14 @@ def main3():
     print("Dec: " + str(dec_data))
     assert PKs == dec_data
     print("Done")
-
-
-def verify_certchain(certs):
     '''for i in range(len(certs) - 1):
         cert_obj = crypto.load_certificate(crypto.FILETYPE_PEM, certs[i])
 
     for i in range(len(cert_obj) - 1):
         issuer = cert_obj[i].get_issuer()'''
     # list = [getCertFromBytes(certs[0]), getCertFromBytes(certs[1]), getCertFromBytes(certs[2])]
+
+def verify_certchain(certs):
     X509_list = []
     crypto_list = []
     for cert in certs:
@@ -282,7 +281,9 @@ def verify_certchain(certs):
         subject = crypto_list[i + 1].get_subject()
         print(subject)
         if issuer == subject:
-            print("issuer and subject done")
+            print("issuer and subject verified")
+        else:
+            return False
 
     # verify the signature sha256
     for i in range(len(X509_list) - 1):
@@ -292,10 +293,9 @@ def verify_certchain(certs):
         sig = RSA_SIGNATURE_MAC(X509_list[i+1].public_key())
         #print(issuer)
         if not sig.verify(this.tbs_certificate_bytes, this.signature):
-            print("aaaa")
             return False
         else:
-            print("ok")
+            print("signature verified")
     return True
 
 
@@ -321,7 +321,7 @@ def main4():
 
 
 if __name__ == "__main__":
-    verify_certchain(getClientCert())
+    verify_certchain(getServerCert())
     #main3()
 
 
