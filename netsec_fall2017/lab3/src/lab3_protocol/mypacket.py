@@ -9,8 +9,7 @@ from OpenSSL import crypto, SSL
 from socket import gethostname
 from pprint import pprint
 from time import gmtime, mktime
-CERT_FILE = "selfsigned.crt"
-KEY_FILE = "private.key"
+
 
 class RequestToConnect(PacketType):
     DEFINITION_IDENTIFIER = "RequestToConnect"
