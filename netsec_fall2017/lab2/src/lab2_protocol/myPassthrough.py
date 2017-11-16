@@ -75,8 +75,7 @@ class PassThroughc2(StackingProtocol):
                 self.ack_counter = 0
                 self.timeout_timer = time.time()
                 self.higherTransport.sent_data()
-            else:
-                print("client waiting...to...end")
+
 
         if time.time() - self.close_timer > 5:
             self.forceclose += 1
@@ -232,7 +231,6 @@ class PassThroughs2(StackingProtocol):
                 self.timeout_timer = time.time()
                 self.ack_counter = 0
             else:
-                print("server waiting...for..RIP")
                 if time.time() - self.close_timer > 30:
                     self.info_list.readyToclose = True
                     self.higherTransport.close()
