@@ -260,23 +260,92 @@ def main3():
     print("Done")
 
 
+def verify_certchain(certs):
+    '''for i in range(len(certs) - 1):
+        cert_obj = crypto.load_certificate(crypto.FILETYPE_PEM, certs[i])
+
+    for i in range(len(cert_obj) - 1):
+        issuer = cert_obj[i].get_issuer()'''
+    # list = [getCertFromBytes(certs[0]), getCertFromBytes(certs[1]), getCertFromBytes(certs[2])]
+    X509_list = []
+    crypto_list = []
+    for cert in certs:
+        x509obj = x509.load_pem_x509_certificate(cert, default_backend())
+        X509_list.append(x509obj)
+        cert = crypto.load_certificate(crypto.FILETYPE_PEM, cert)
+        crypto_list.append(cert)
+
+    # verify the issuer and subject
+    for i in range(len(crypto_list) - 1):
+        issuer = crypto_list[i].get_issuer()
+        print(issuer)
+        subject = crypto_list[i + 1].get_subject()
+        print(subject)
+        if issuer == subject:
+            print("issuer and subject done")
+
+    # verify the signature sha256
+    for i in range(len(X509_list) - 1):
+        this = X509_list[i]
+        #print(this)
+        #print(this.signature)
+        sig = RSA_SIGNATURE_MAC(X509_list[i+1].public_key())
+        #print(issuer)
+        if not sig.verify(this.tbs_certificate_bytes, this.signature):
+            print("aaaa")
+            return False
+        else:
+            print("ok")
+    return True
+
+
+def main4():
+    certs = getClientCert()
+    # print(verify_certchain(certs))
+    for cert in certs:
+        c_cert = crypto.load_certificate(crypto.FILETYPE_PEM, cert)
+        subject = c_cert.get_subject()
+        print("subject:"+str(subject))
+        issued_to = subject.CN  # the Common Name field
+        print("issued to: "+issued_to)
+        issuer = c_cert.get_issuer()
+        print("issuer:"+str(issuer))
+        issued_by = issuer.CN
+        print("issued by: "+issued_by)
+        aa = c_cert.get_signature_algorithm()
+        print(aa)
+        print("-----------------------------")
+
+
+
 
 
 if __name__ == "__main__":
-    main2()
+    verify_certchain(getClientCert())
+    #main3()
+
+
+
+
     # print("Done")
-    a = []
-    a = getClientCert()
-    '''print(type(getClientCert()))
-    print(type([b'a',b'dadf']))
-    print(type(b'a'))
-    print(type(a[0]))
-    print(a)'''
-
+    #a = []
+    #a = getClientCert()
+    #print(verify_certchain(getClientCert()))
     # print(getServerCert())
+    # cert_obj = []
+    # certs = getClientCert()
+    # for i in range(len(certs)):
+    #     cert_obj.append(crypto.load_certificate(crypto.FILETYPE_PEM, certs[i]))
+    #     print(certs[i])
+    # cert_store = crypto.X509Store()
+    # #cert_store.add_cert(cert_obj[0])
+    # cert_store.add_cert(cert_obj[1])
+    # cert_store.add_cert(cert_obj[2])
+    # store_ctx = crypto.X509StoreContext(cert_store, cert_obj[0])
+    # store_ctx.verify_certificate()
 
-
-
+    # print(verify_certchain(getClientCert()))
+    # Prepare X509 objects
 
 # openssl x509 -req -days 360 -in <CSR-for-the-new-device> -CA <your-intermediate-CA-certificate> -CAkey <your-intermediate-CA-key> -out <your-new-certificate> -set_serial <a random number>
 # openssl x509 -req -days 360 -in server.csr -CA signed.cert -CAkey private_key -out server.cert -set_serial 176
@@ -292,9 +361,12 @@ if __name__ == "__main__":
 # Email Address []:<Your email address>
 # Challenge: <LEAVE BLANK>
 # Company: <Your Name>
-
 # python -m test.ThroughputTester [client or server] --reference-stack=lab2_protocol
-
-
 # server 20174.1.6666.1  -set_serial 176
 # client 20174.1.6666.2 -set_serial 41
+
+
+    # os.system("openssl ca -config " + os.path.abspath("demoCA/openssl.cnf") + " " +
+    #           "-keyfile intermediate.key -passin pass:" + intermediate_password + " " +
+    #           "-cert intermediate.pem -extensions v3_req -notext -md sha256 -batch " +
+    #           "-days " + str(days) + " -in server.csr -out server.pem")
