@@ -1,0 +1,728 @@
+
+
+
+Network Working Group                                       P. Wang, Ed.
+Request for Comments: 1                   JHU Network Security Fall 2017
+Category: Standards Track                                   October 2017
+
+
+                    Playground Request For Comments
+
+Abstract
+
+   The PEEP Protocol is designed to provide reliable transpiration
+   between hosts in PLAYGROUND (Poly-Localized Algorithmic Yields
+   Generated Remotely on Unused Network Devices) system.  The protocol
+   can distinguish the data between two different sessions and ensure
+   that the data arrives.
+
+Status of this Memo
+
+   This document specifies a Playgrounds standards track protocol for
+   the Playground Experiment, and requests discussion and suggestions
+   for improvements.  Distribution of this memo is unlimited.
+
+Copyright Notice
+
+   Copyright (c) 2017 SETH JAMES NIELSON.  All rights reserved.
+
+   This document is used solely for educational purposes.  Any citations
+   within this document are also for educational purposes and also for
+   technical reference.  If any of these cited elements are protected
+   under copyright, their inclusion here falls under Fair Use
+   provisions.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Wang                         Standards Track                    [Page 1]
+
+RFC 1                            PRFC's                     October 2017
+
+
+Table of Contents
+
+   1.  Introduction . . . . . . . . . . . . . . . . . . . . . . . . .  3
+     1.1.  Requirements Language  . . . . . . . . . . . . . . . . . .  3
+     1.2.  Motivation . . . . . . . . . . . . . . . . . . . . . . . .  3
+   2.  Operation  . . . . . . . . . . . . . . . . . . . . . . . . . .  4
+     2.1.  Basic Data Transfer  . . . . . . . . . . . . . . . . . . .  4
+     2.2.  Connections  . . . . . . . . . . . . . . . . . . . . . . .  4
+     2.3.  Reliability  . . . . . . . . . . . . . . . . . . . . . . .  4
+     2.4.  Flow Control . . . . . . . . . . . . . . . . . . . . . . .  4
+   3.  Header Format  . . . . . . . . . . . . . . . . . . . . . . . .  5
+   4.  Sequence Number  . . . . . . . . . . . . . . . . . . . . . . .  6
+   5.  Connection Establish . . . . . . . . . . . . . . . . . . . . .  6
+   6.  Connection Terminate . . . . . . . . . . . . . . . . . . . . .  7
+   7.  Data Communication . . . . . . . . . . . . . . . . . . . . . .  7
+   8.  Interfaces . . . . . . . . . . . . . . . . . . . . . . . . . .  7
+   9.  State Machine  . . . . . . . . . . . . . . . . . . . . . . . .  8
+   10. Error Handling . . . . . . . . . . . . . . . . . . . . . . . . 10
+   11. Copyright Information  . . . . . . . . . . . . . . . . . . . . 10
+   12. Normative References . . . . . . . . . . . . . . . . . . . . . 10
+   Author's Address . . . . . . . . . . . . . . . . . . . . . . . . . 10
+   Intellectual Property and Copyright Statements . . . . . . . . . . 12
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Wang                         Standards Track                    [Page 2]
+
+RFC 1                            PRFC's                     October 2017
+
+
+1.  Introduction
+
+   RFC's (Request for Comments) are a publication of the Internet
+   Engineering Task Force (IETF).  RFC's have many purposes including
+   the publication of standards, general information, and best
+   practices.
+
+   The PRFC documentation describes the functions to be performed by the
+   PEEP protocol, the program that implements it, and its interface to
+   programs or users that require its services.  The PEEP protocol works
+   on the transport layer of the network protocol stack.
+
+1.1.  Requirements Language
+
+   The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+   "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this
+   document are to be interpreted as described in RFC 2119 [RFC2119].
+
+1.2.  Motivation
+
+   This protocol focuses on reliable transportation in computer network
+   system.  This documentation will describe how PEEP provides reliable
+   transportation.  The PEEP can ensure that data arrives in order and
+   without duplication up to a "reasonable" error rate.
+
+   PEEP is based on TCP (Transmission Control Protocol) described in RFC
+   793.  The network stack for PEEP has 4 layers as Figure 1 shows.
+
+
+                   Protocol Layering
+
+                 +---------------------+
+                 |     Application     |
+                 +---------------------+
+                 |     PassThrough1    |
+                 +---------------------+
+                 |     PassThrough2    |
+                 +---------------------+
+                 | playground network  |
+                 +---------------------+
+
+                         Figure 1.
+
+
+   PEEP is a session-enabled, connection-oriented, host-to-host reliable
+   protocol designed to provide reliable transportation service for
+   hosts based on PLAYGROUND network.  PassThrough1 and PassThrough2 are
+   two transmitters between PLAYGROUND and applications, including the
+
+
+
+Wang                         Standards Track                    [Page 3]
+
+RFC 1                            PRFC's                     October 2017
+
+
+   client and server.
+
+
+2.  Operation
+
+2.1.  Basic Data Transfer
+
+   PEEP is supposed to enable a continuous stream of octets to transport
+   in the connections between the senders and receivers, which is
+   packaged into segments when transmitting in the network.  In the
+   transmissions, users need to be sure that the receivers have obtained
+   the same number of octets in each segment that users have sent.  To
+   ensure that all data has been actually transmitted to the receiver,
+   two parameters are defined in PEEP headers, including Checksum and
+   Sequence Number.
+
+2.2.  Connections
+
+   There is no doubt that PEEP has the responsibility of guaranteeing
+   the success of certain information transmission for each data packet.
+   Sockets, ACK and sequence numbers combine a connection together.  To
+   start a new communication between the client and server, a connection
+   must be made at first.  And the connection will be automatically
+   terminated or closed once the communication is broken or complete in
+   order to release resources.
+
+2.3.  Reliability
+
+   PEEP must guarantee to recover from data that is damaged, lost,
+   duplicated, or delivered out of order by the internet communication
+   system.  To ensure that the data is correct, a sequence number is
+   randomly assigned to each octet transported and then an
+   acknowledgement (ACK) would come back from the receivers, so data
+   needs to be retransmitted when the ACK does not come back within a
+   given time.  At the receiver, the segment will be discarded if it is
+   not transmitted in the correct order of sequence number.  Checksum is
+   defined as the length of each packet, which is used to check the
+   correctness of each segment transported at the receiver and decide
+   whether the segment is discarded.
+
+2.4.  Flow Control
+
+   PEEP is able to control the number of packet sent by the senders,
+   which avoids receivers having enough "window" to handle data.  A
+   parameter "window_size" in each ACK packet indicates a range of
+   acceptable sequence numbers when the last segment successfully
+   received.  Window_size tells the allowed number of octets that
+   senders can transmit at present.
+
+
+
+Wang                         Standards Track                    [Page 4]
+
+RFC 1                            PRFC's                     October 2017
+
+
+3.  Header Format
+
+   PEEP protocol send data as packets.  Each packet follows a same
+   structure and has a same header format, which supply information
+   required in PEEP protocol.  Following is the Header format of PEEP
+   packet.
+
+
+                 FIELDS = [
+                         ("Type", UINT8),
+                         ("SequenceNumber", UINT32({Optional: True})),
+                         ("Checksum", UINT16({Optional: True})),
+                         ("SessionId",STRING({Optional: True})),
+                         ("Acknowledgement", UINT32({Optional: True})),
+                         ("Data", BUFFER({Optional: True}))
+                 ]
+
+                         Figure 2.
+
+
+   Type This field indicate the type of this packet.  The meaning of
+   this field's value is below:
+
+
+                       # TYPE 0 -    SYN
+                       # TYPE 1 -    SYN-ACK
+                       # TYPE 2 -    ACK
+                       # TYPE 3 -    RIP
+                       # TYPE 4-     RIP-ACK
+                       # TYPE 5-     DATA
+
+                           Figure 3.
+
+
+   Sequence Number The sequence number of the first data octet in this
+   segment (except when SYN is present).  If SYN is present the sequence
+   number is the initial sequence number (ISN) and the first data octet
+   is ISN+1.
+
+   Checksum This field protects the integrity of the packet.  The host
+   will calculate a number based on the content of the packet.  When
+   another host received the packet, it will check recalculate and
+   compare the checksum to ensure the packet has not been changed.
+
+   SessionId SessionId is used to identify different session.  It can
+   prevent a connection with wrong SessionId.  SessionId is decided in
+   the process of three-way handshake.
+
+
+
+
+Wang                         Standards Track                    [Page 5]
+
+RFC 1                            PRFC's                     October 2017
+
+
+   Acknowledgment Number Acknowledgment Number ensures the order of
+   packets.  If the ACK contains the value of next sequence number the
+   sender of the segment is expecting to receive.  Once a connection is
+   established this is always sent.
+
+   Data Data field contains those data to be transmitted.
+
+
+4.  Sequence Number
+
+   Every packet transferred on the PEEP protocol must have a sequence
+   number, even for the initialization packet, which is also the
+   connection request from the client.  The sequence number in the
+   initialization packet is arbitrary and important as the initial
+   number for the following packets sent from the client.  In the period
+   of communication establishment, which is also known as "three-way
+   handshake", on both the client and the server sides, the sequence
+   number increments by 1.  In the period of data communication, the
+   sequence number increments by the packet size sent by themselves.
+
+   That is the reason why PEEP protocol could confirm the package
+   transmission in order.  On server side, all packages received from
+   client could be arranged in order by sequence number.  What's more,
+   the server should refuse accept the packet not in order and expected.
+   And there is an acknowledge number in PEEP protocol, which implies
+   the expected next sequence number sent from other side.  For example,
+   In the period of data communication, while the server receives the
+   packet from client, the server should calculate the sum of sequence
+   number of the packet and the packet size.  The sum should be the
+   acknowledge number in the reply packet to client, which also is
+   sequence number of next packet sent from client.  With the help of
+   sequence number and acknowledge number, the client could know which
+   packet is received by the server and the next packet to send.
+
+
+5.  Connection Establish
+
+   "Three-way handshake" is the procedure used to establish a
+   connection.  Normally, this procedure is initiated by one host and
+   respond by another host.  This procedure can also work if two hosts
+   initiate in the same time.  The "three-way handshake" can reduce the
+   possibility of a false connection.
+
+   In PEEP protocol, the connection establishment is complemented by
+   "three-way handshake" by two parties.  Define the party that
+   initiates the connection as A and the party that accepts the
+   connection request as B for clear explanation.  In "three-way
+   handshake" procedure, A initiates a connection by sending a packet
+
+
+
+Wang                         Standards Track                    [Page 6]
+
+RFC 1                            PRFC's                     October 2017
+
+
+   with initial sequence number in header to B and set the packet type
+   as 0 which means this is a connection request package.  To accept the
+   connection request, B sends back a packet with acknowledge number
+   which is result of the sequence number of initiation package plus
+   data size and its own sequence number.  When A receives package and
+   verifies package type and acknowledge number, A sends the third
+   package to B with acknowledge number, which is the result of sequence
+   number of the second package plus data size of the package.
+
+   Then "three-way handshake" is finished and the connection is
+   established.
+
+
+6.  Connection Terminate
+
+   When one of the two users want to stop sending data, it will begin
+   the termination of the connection.  This process will exchange 4
+   messages between two users.  The user A who want to terminate the
+   connection sends RIP packet to the other user B. Then B will send an
+   ACK packet and a RIP packet.  After A received B's RIP,it will send
+   back an ACK and wait a little time then close its connection.  B will
+   close its connection after it received A's Ack.
+
+
+7.  Data Communication
+
+   When the communication is established, the data is communicated by
+   the transmission of packets.  In PEEP protocol, packets are
+   transmitted and received in order.  The client should send out packet
+   with sequence number.  The server should send back a corresponding
+   ACK packet to reply.  Besides, the server should give a windows size
+   in the ACK packet, which suggests the most segments the server could
+   manage at the moment.  In PEEP protocol, every packet sent from
+   client should have ACK reply packet from server, which would delay
+   the process.  The windows size is created to fasten the process by
+   setting the most segments could be sent from client without reply
+   packets and handled by server in one time.  When the remaining window
+   size is not enough, the server should send the remaining size to the
+   client.  The client should stop send packets, when Window size is 0.
+
+
+8.  Interfaces
+
+   PEEP is designed to A[not]A[not]communicate between server and client
+   upon the PLAYGROUND.  There are 2 interfaces in the protocol: The
+   User/PEEP Interface and the PEEP/lower-level Interface.
+
+   The User/PEEP Interface is between the application layer and the PEEP
+
+
+
+Wang                         Standards Track                    [Page 7]
+
+RFC 1                            PRFC's                     October 2017
+
+
+   layer.  The interface designed to send the initial, close, and send
+   signal to the application layer.  Those signals aim to initialize the
+   connection, terminate the connection, send and receive data.  In the
+   upper layer, application can use "transport.write" to send data and
+   use "_deserializer" to receive data.
+
+   The PEEP/lower-level Interface is between the PEEP and PLAYGROUND.
+   This interface connects with the other side Transport Interface to
+   perform 3-way Handshake to initialize the connection and also send
+   ACK packet to confirm received data packet.  To send data by
+   PLAYGROUND, it can use "transport.write".  And it uses
+   "_deserializer" to receive data from PLAYGROUND.
+
+
+9.  State Machine
+
+   A connection passes through a series of states during its lifetime in
+   PEEP, including LISTEN, SYN-SENT, SYN-RCVD, ESTABLISHED, RIP-WAIT1,
+   RIP-WAIT2, CLOSE-WAIT, CLOSING, LAST-ACK, TIME WAIT and the final
+   state CLOSED.  The state CLOSED is very useful because of
+   representing no connection.
+
+   Closed: Closed state, no connection activity.
+
+   Listen: Listening state, waiting for the connection to enter.
+
+   SYN_SENT: A connection request has been sent, waiting for
+   confirmation.
+
+   SYN_RCVD: A connection request has been received and it is not yet
+   confirmed.
+
+   ESTABLISHED: Connection has been established and normal data can be
+   transferred.
+
+   FIN_WAIT1: (active shutdown) A closed request has been sent, waiting
+   for confirmation.
+
+   FIN_WAIT2: (active shutdown) A closed request has been received,
+   waiting for the other side to close the request.
+
+   CLOSE_WAIT: (passive shutdown) A closing request has been confirmed.
+
+   LAST_ACK: (passive shutdown) Wait for the last shutdown to confirm
+   and the connection to terminate.
+
+   TIMED_WAIT: Wait for both sides to receive the acknowledgement of
+   terminating connection.
+
+
+
+Wang                         Standards Track                    [Page 8]
+
+RFC 1                            PRFC's                     October 2017
+
+
+   CLOSING: Both sides close at the same time and wait for confirmation.
+
+                             PCC Packet Header
+
+
+                              +---------------+
+                              |    CLOSED     |
+                              +----+-----+----+
+                                  |     |
+                          SENT INI|     |  RECV INI, SENT INI/ACK
+                                  v     v
+
+                              +---------------+
+                              |    LISTEN     |
+                              +----+-----+----+
+                                  |     |
+      +------------------+           |     |           +---------------+
+      | INITIATE SENT    | ^---------+     +---------^ | INITIATE RECV |
+      |                  <-----------------------------+               |
+      +----+--------+----+      RECV INI/ACK,SENT ACK  +---+-----------+
+          |        |                                      |
+          |        |                             SENT ACK |
+  TERMINATE |        |           +---------------+          |
+          |        +---------> |   CONNECTED   | <--------+
+          |                    +----+-----+----+
+          v                         +     |
+                      SENT TERMINATE    |TERMINATE/ACK
+      +------------------+           +     |           +---------------+
+      |   TERMI|REQ      <-----------+     +---------> |   CLOSE REQ   |
+      +----+-------------+                             +------+--------+
+          |       +-----------------+                        |
+          | RECV ACK                |SENT TERMINATE/ACK      | CLOSE TER
+          v                         |                        v
+                                  |
+      +------------------+      +----v----------+      +---------------+
+      |   TERMI REQ A    |      |   CLOSE ACK   |      |  ACK RECV     |
+      +----+-------------+      +-------+-------+      +-------+-------+
+          |                            |                      |
+          |TEMINATE/ACK                v ACK                  v ACK
+          |
+          |                    +---------------+      +---------------+
+          +------------------> |      WAIT     +----> |    CLOSED     |
+                              +---------------+      +---------------+
+
+                                  Figure 4.
+
+
+
+
+
+
+Wang                         Standards Track                    [Page 9]
+
+RFC 1                            PRFC's                     October 2017
+
+
+10.  Error Handling
+
+   PEEP could guarantee the packets received in order and the
+   retransmission of lost packets.  Every time the client sends out a
+   packet, the server should send back a confirm packet to tell client
+   the packet has been received.  And the packets are sent and received
+   in order by sequence number.  If some packets are lost through the
+   transmission, the server should not accept the following packet sent
+   from client with wrong acknowledge number.  The client could
+   retransmit the lost packets for not receiving the reply packets from
+   the server.
+
+   PEEP could guarantee the integrity of package by checksum.  The
+   checksum is calculated by Adler-32 algorithms on the bytes in
+   packages.  Both the server and the client could calculate the
+   checksum while receive the package and compare the calculation result
+   with the checksum value owned by the package.  If the values are the
+   same, it suggests the package is intact.  If the values are
+   different, it means there is something wrong happened about the
+   package, for example, some data lost during the transmission or the
+   package is altered by unauthorized third party.
+
+
+11.  Copyright Information
+
+   The PLAYGROUND experiment is still new and has not yet developed a
+   policy that has been reviewed by legal counsel.  However, at present,
+   the following text MUST be used in the PRFC's.
+
+   The copyright notice on the front page of the PRFC should read:
+   "Copyright (c) 2017 SETH JAMES NIELSON.  All rights reserved.
+
+
+12.  Normative References
+
+   [RFC2119]  Bradner, S., "Key words for use in RFCs to Indicate
+              Requirement Levels", BCP 14, RFC 2119, DOI 10.17487/
+              RFC2119, March 1997,
+              <https://www.rfc-editor.org/info/rfc2119>.
+
+   [RFC2360]  Scott, G., "Guide for Internet Standards Writers", BCP 22,
+              RFC 2360, DOI 10.17487/RFC2360, June 1998,
+              <https://www.rfc-editor.org/info/rfc2360>.
+
+
+
+
+
+
+
+
+Wang                         Standards Track                   [Page 10]
+
+RFC 1                            PRFC's                     October 2017
+
+
+Author's Address
+
+   Peiyu Wang (editor)
+   JHU Network Security Fall 2017
+   JHU 160 Malone Hall/3400 North Charles St.
+   Baltimore, MD  21218
+   USA
+
+   Phone: +1 443-449-3230
+   Email: zl@jhu.edu
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Wang                         Standards Track                   [Page 11]
+
+RFC 1                            PRFC's                     October 2017
+
+
+Full Copyright Statement
+
+   Copyright (C) Seth James Nielson (2017).  All Rights Reserved.
+
+   This document and translations of it may be copied and furnished to
+   others, and derivative works that comment on or otherwise explain it
+   or assist in its implementation may be prepared, copied, published
+   and distributed, in whole or in part, without restriction of any
+   kind, provided that the above copyright notice and this paragraph are
+   included on all such copies and derivative works.  However, this
+   document itself may not be modified in any way, such as by removing
+   the copyright notice or references to the PLAYGROUND experiment or
+   other associated organizations, except by explicit permission.
+
+   The limited permissions granted above are perpetual and will not be
+   revoked by SETH JAMES NIELSON or his successors or assigns.
+
+   This document and the information contained herein is provided on an
+   "AS IS" basis and SETH JAMES NIELSON and associated academic
+   institutions DISCLAIM ALL WARRANTIES, EXPRESS OR IMPLIED, INCLUDING
+   BUT NOT LIMITED TO ANY WARRANTY THAT THE USE OF THE INFORMATION
+   HEREIN WILL NOT INFRINGE ANY RIGHTS OR ANY IMPLIED WARRANTIES OF
+   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
+
+
+Intellectual Property
+
+   The PLAYGROUND framework and student submissions for PLAYGROUND are
+   intended to be free of any intellectual property conflicts.  All
+   submitting parties, especially students, are not allowed to submit
+   source code, specifications, or other components that are known to be
+   protected by copyright, patents, or other IP mechanisms.  Students
+   submitting creative content grant shared rights and ownership of
+   their content to the PLAYGROUND project.  Specifically, any
+   submission can be used in future educational settings including
+   subsequent PLAYGROUND experiments.
+
+   Any interested party is invited to bring to the experiment director's
+   attention any copyrights, patents or patent applications, or other
+   proprietary rights which may cover technology that may be currently
+   in use without permission.
+
+   It should be noted that these statements have not been reviewed by
+   legal counsel.  Moreover, the academic institutions at which
+   PLAYGROUND experiments take place may have additional or even
+   conflicting copyright and intellectual property rules.  Accordingly,
+   concerned parties may need to contact their own lawyer and/or
+   resources at their institution to understand the rights and
+
+
+
+Wang                         Standards Track                   [Page 12]
+
+RFC 1                            PRFC's                     October 2017
+
+
+   limitations associated with code donated to a PLAYGROUND experiment.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Wang                         Standards Track                   [Page 13]
+

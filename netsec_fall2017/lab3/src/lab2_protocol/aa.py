@@ -2,43 +2,222 @@ import time
 from .MyProtocolTransport import *
 import logging
 import asyncio
+import hashlib
+from .CertFactory import *
+from Crypto.PublicKey import RSA
+from playground.common.CipherUtil import *
+
+logging.getLogger().setLevel(logging.NOTSET)  # this logs *everything*
+logging.getLogger().addHandler(logging.StreamHandler())  # logs to stderr
+
+# M1, C->S:  PlsHello(Nc, [C_Certs])
+# M2, S->C:  PlsHello(Ns, [S_Certs])
+# M3, C->S:  PlsKeyExchange( {PKc}S_public, Ns+1 )
+# M4, S->C:  PlsKeyExchange( {PKs}C_public, Nc+1 )
+# M5, C->S:  PlsHandshakeDone( Sha1(M1, M2, M3, M4) )
+# M6, S->C:  PlsHandshakeDone( Sha1(M1, M2, M3, M4) )
 
 
-# logging.getLogger().setLevel(logging.NOTSET)  # this logs *everything*
-# logging.getLogger().addHandler(logging.StreamHandler())  # logs to stderr
+# State machine for client SL
+# 0: intial state, send C → S: PlsHello(Nc, [C_Certs])
+# 1: receive PlsHello, send C->S:  PlsKeyExchange( {PKc}S_public, Ns+1 )
+# 2: receive PlsKeyExchange, send PlsHandshakeDone
+# 3: receive PlsHandshakeDone, handshake done
 
 
 class PassThroughc1(StackingProtocol):
     def __init__(self):
         self.transport = None
+        self.handshake = False
+        self.higherTransport = None
+        self._deserializer = PacketBaseType.Deserializer()
+        self.state = 0
+        self.C_Nonce = 0
+        self.S_Nonce = 0
+        self.S_Certs = []
+        self.C_Certs = getCertForAddr()
+        self.Pkc=os.urandom(16)
+        self.Pks = [] #from server, used to generate keys
+        self.C_crtObj = crypto.load_certificate(crypto.FILETYPE_PEM, self.C_Certs[0])
+        self.CPubK=self.C_crtObj.get_pubkey()
+        self.C_pubKeyString = crypto.dump_publickey(crypto.FILETYPE_PEM, self.CPubK)
+        self.C_privKey=getPrivateKeyForAddr()
+        self.hashresult = hashlib.sha1()
 
     def connection_made(self, transport):
+        print("SL connection made")
         self.transport = transport
-        higherTransport = StackingTransport(self.transport)
-        self.higherProtocol().connection_made(higherTransport)
+        helloPkt = PlsHello()
+        self.C_Nonce = random.getrandbits(64)
+        print(self.C_Nonce)
+        helloPkt.Nonce = self.C_Nonce
+        # helloPkt.Certs = helloPkt.generateCerts()
+        helloPkt.Certs = getCertForAddr()
+        self.hashresult.update(helloPkt.__serialize__())
+
+        self.transport.write(helloPkt.__serialize__())
+        print("client: PlsHello sent")
+        #higherTransport = StackingTransport(self.transport)
+        #self.higherProtocol().connection_made(higherTransport)
+
 
     def data_received(self, data):
-        self.higherProtocol().data_received(data)
+        #self.higherProtocol().data_received(data)
+        self._deserializer.update(data)
+        for pkt in self._deserializer.nextPackets():
+            if isinstance(pkt, PlsHello) and self.state == 0:
+                print("client: PlsHello received")
+                self.hashresult.update(pkt.__serialize__())
+                self.S_Nonce = pkt.Nonce
+                self.S_Certs = pkt.Certs
+                keyExchange = PlsKeyExchange()
+                crtObj = crypto.load_certificate(crypto.FILETYPE_PEM, self.S_Certs[0])
+                pubKeyObject = crtObj.get_pubkey()
+                pubKeyString = crypto.dump_publickey(crypto.FILETYPE_PEM, pubKeyObject)
+                key = RSA.importKey(pubKeyString)
+                # print(key.can_encrypt())
+                # print(key.can_sign())
+                # print(key.has_private())
+                public_key = key.publickey()
+                cipher = public_key.encrypt(self.Pkc,32)
+                print(self.Pkc)
+                keyExchange.PreKey = cipher
+                keyExchange.NoncePlusOne = self.S_Nonce + 1
+                self.state = 1
+                self.hashresult.update(keyExchange.__serialize__())
+                self.transport.write(keyExchange.__serialize__())
+                print("clinet: KeyEx sent")
+            elif isinstance(pkt, PlsKeyExchange) and self.state == 1:
+                self.hashresult.update(pkt.__serialize__())
+                print("client: PlsKeyExchange received")
+                #check nc
+                if pkt.NoncePlusOne == self.C_Nonce + 1:
+                    print("client: check NC+1")
+                    CpriK=RSA.importKey(self.C_privKey)
+                    self.Pks = CpriK.decrypt(pkt.PreKey)
+                    hdshkdone = PlsHandshakeDone()
+                    hdshkdone.ValidationHash = self.hashresult.digest()
+                    self.state = 2
+                    self.transport.write(hdshkdone.__serialize__())
+                    print("client: send handshake done")
+            elif isinstance(pkt, PlsHandshakeDone) and self.state == 2:
+                # check hash
+                if self.hashresult.digest() == pkt.ValidationHash:
+                    print("-------------client: Hash Validated, PLS handshake done!-------------")
+                    #self.higherTransport = StackingTransport
+                    #higherTransport = StackingTransport(self.transport)
+                    self.state = 3
+                    self.handshake = True
+                    self.higherTransport = PLSTransport(self.transport)
+                    self.higherProtocol().connection_made(self.higherTransport)
+                    print("client higher sent data")
+                else:
+                    print("Hash validated error!")
+            elif isinstance(pkt, PlsData) and self.handshake:
+                # plaintext = dec
+                self.higherProtocol().data_received(pkt.Ciphertext)
 
     def connection_lost(self, exc):
         self.higherProtocol().connection_lost(exc)
 
 
-#
+
+
+# State machine for server SL
+# 0: initial state, wait for PlsHello
+# 1: receive PlsHello, send PlsKeyExchange( {PKs}C_public, Nc+1 )
+# 2: receive PlsKeyExchange, send PlsKeyExchange
+# 3: receive PlsHandshakeDone, send PlsHandshakeDone, check hash value, handshake done
 class PassThroughs1(StackingProtocol):
     def __init__(self):
         self.transport = None
+        self.handshake = False
+        self.higherTransport = None
+        self._deserializer = PacketBaseType.Deserializer()
+        self.state = 0
+        self.C_Nonce = 0
+        self.S_Nonce = 0
+        self.S_Certs = getCertForAddr()
+        self.C_Certs = []
+        self.Pks = os.urandom(16)
+        self.S_crtObj = crypto.load_certificate(crypto.FILETYPE_PEM, self.S_Certs[0])
+        self.SPubK = self.S_crtObj.get_pubkey()
+        self.SPriK=getPrivateKeyForAddr()
+        self.S_pubKeyString = crypto.dump_publickey(crypto.FILETYPE_PEM, self.SPubK)
+        self.hashresult = hashlib.sha1()
 
     def connection_made(self, transport):
+        print("SL connection made server")
         self.transport = transport
-        higherTransport = StackingTransport(self.transport)
-        self.higherProtocol().connection_made(higherTransport)
 
     def data_received(self, data):
-        self.higherProtocol().data_received(data)
+        self._deserializer.update(data)
+        for pkt in self._deserializer.nextPackets():
+            if isinstance(pkt, PlsHello) and self.state == 0:
+                print("server: PlsHello received")
+                self.hashresult.update(bytes(pkt.__serialize__()))
+                self.C_Nonce = pkt.Nonce
+                self.C_Certs = pkt.Certs
+                helloPkt = PlsHello()
+                self.S_Nonce = random.getrandbits(64)
+                helloPkt.Nonce = self.S_Nonce
+                helloPkt.Certs = self.S_Certs
+                self.hashresult.update(bytes(helloPkt.__serialize__()))
+                self.state = 1
+                self.transport.write(helloPkt.__serialize__())
+                print("server: PlsHello sent")
+            elif isinstance(pkt, PlsKeyExchange) and self.state == 1:
+                self.hashresult.update(bytes(pkt.__serialize__()))
+                # check nc
+                if pkt.NoncePlusOne == self.S_Nonce + 1:
+                    print("server: check NC+1")
+                    priK=RSA.importKey(self.SPriK)
+                    self.Pkc=priK.decrypt(pkt.PreKey)
+                    keyExchange = PlsKeyExchange()
+                    crtObj = crypto.load_certificate(crypto.FILETYPE_PEM, self.C_Certs[0])
+                    pubKeyObject = crtObj.get_pubkey()
+                    pubKeyString = crypto.dump_publickey(crypto.FILETYPE_PEM, pubKeyObject)
+                    key = RSA.importKey(pubKeyString)
+                    public_key=key.publickey()
+                    cipher=public_key.encrypt(self.Pks,32)
+                    keyExchange.PreKey = cipher[0]
+                    keyExchange.NoncePlusOne = self.C_Nonce + 1
+                    self.hashresult.update(bytes(keyExchange.__serialize__()))
+                    self.state = 2
+                    self.transport.write(keyExchange.__serialize__())
+                else:
+                    print("server: NC+1 error")
+            elif isinstance(pkt, PlsHandshakeDone) and self.state == 2:
+                hdshkdone = PlsHandshakeDone()
+                hdshkdone.ValidationHash = self.hashresult.digest()
+                print("server: Reveive handshake done")
+                # check hash
+                if self.hashresult.digest() == pkt.ValidationHash:
+                    self.state = 3
+                    self.handshake = True
+                    self.transport.write(hdshkdone.__serialize__())
+                    self.higherTransport = PLSTransport(self.transport)
+                    self.higherProtocol().connection_made(self.higherTransport)
+                    print("-------------server: Hash Validated, PLS handshake done!-------------")
+                else:
+                    print("Hash validated error!")
+            elif isinstance(pkt, PlsData) and self.handshake:
+                # plaintext = dec
+                self.higherProtocol().data_received(pkt.Ciphertext)
+
+
 
     def connection_lost(self, exc):
         self.higherProtocol().connection_lost(exc)
+
+    def encrypto(self):
+        enbytes = b''
+        return enbytes
+
+    def decrypto(self):
+        debytes = b''
+        return debytes
+
 
 
 #

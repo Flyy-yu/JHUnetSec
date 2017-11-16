@@ -3,7 +3,6 @@ import random
 import sys, time, os, logging, asyncio
 from .myPassthrough import *
 
-
 # this is the client
 class MyProtocolClient(asyncio.Protocol):
     def __init__(self, name, loop):
@@ -120,17 +119,17 @@ def basicUnitTest():
     fclient = StackingProtocolFactory(lambda: PassThroughc1(), lambda: PassThroughc2())
     fserver = StackingProtocolFactory(lambda: PassThroughs1(), lambda: PassThroughs2())
 
-    lab2Connector = playground.Connector(protocolStack=(
+    lab3Connector = playground.Connector(protocolStack=(
         fclient,
         fserver))
-    playground.setConnector("lab2_protocol", lab2Connector)
+    playground.setConnector("lab3_protocol", lab3Connector)
 
     mode = echoArgs[0]
     loop = asyncio.get_event_loop()
     loop.set_debug(enabled=True)
 
     if mode.lower() == "server":
-        coro = playground.getConnector('lab2_protocol').create_playground_server(lambda: MyProtocolServer(), 101)
+        coro = playground.getConnector('lab3_protocol').create_playground_server(lambda: MyProtocolServer(), 101)
         server = loop.run_until_complete(coro)
         print("my Server Started at {}".format(server.sockets[0].gethostname()))
         loop.run_forever()
@@ -139,7 +138,7 @@ def basicUnitTest():
 
     else:
         address = mode
-        coro = playground.getConnector('lab2_protocol').create_playground_connection(
+        coro = playground.getConnector('lab3_protocol').create_playground_connection(
             lambda: MyProtocolClient("hello", loop),
             address, 101)
         loop.run_until_complete(coro)

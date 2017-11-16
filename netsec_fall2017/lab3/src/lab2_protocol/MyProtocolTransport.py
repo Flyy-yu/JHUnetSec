@@ -1,6 +1,9 @@
 from playground.network.common import *
 from .mypacket import *
-
+from .CertFactory import *
+from Crypto.Cipher import AES
+from Crypto.Util import Counter
+from Crypto.Hash import HMAC, SHA256
 packet_size = 1000
 window_size = 5
 
@@ -74,3 +77,43 @@ class MyTransport(StackingTransport):
 
     def get_data(self):
         return self.info_list.data
+
+class PLSTransport(StackingTransport):
+    def write(self, data):
+        PLSpacket = PlsData()
+        print("PLS transport got data")
+        ciphertext = self.encrypto_data(data)
+        PLSpacket.Ciphertext = ciphertext
+
+        hm1 = HMAC.new(self.mac, digestmod=SHA256)
+        hm1.update(ciphertext)
+        PLSpacket.Mac = hm1.digest()
+        self.lowerTransport().write(PLSpacket.__serialize__())
+
+    def get_info(self, key, iv, mk):
+        self.key = key
+        self.iv = iv
+        self.mac = mk
+
+    def encrypto_data(self, data):
+        assert len(self.key) == 32
+        iv_int = int(self.iv, 16)
+
+        # Create a new Counter object with IV = iv_int.
+        ctr = Counter.new(AES.block_size * 8, initial_value=iv_int)
+
+        # Create AES-CTR cipher.
+        aes = AES.new(self.key, AES.MODE_CTR, counter=ctr)
+
+        # Encrypt and return IV and ciphertext.
+        ciphertext = aes.encrypt(data)
+        print("--------------------enc--------------------")
+        return ciphertext
+
+
+    def close(self):
+        self.lowerTransport().close()
+
+
+
+

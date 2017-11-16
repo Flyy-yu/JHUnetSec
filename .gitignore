@@ -2,8 +2,8 @@
 *.pyc
 .idea/
 .DS_Store
-/netsec_fall2017/lab2/certs/
-netsec_fall2017/lab2/certs/csr_file
-netsec_fall2017/lab2/certs/private_key
-netsec_fall2017/lab2/certs/root.crt
-netsec_fall2017/lab2/src/lab2_protocol/aa.py
+/lab3/certs/
+netsec_fall2017/lab3/certs/csr_file
+netsec_fall2017/lab3/certs/private_key
+netsec_fall2017/lab3/certs/root.crt
+netsec_fall2017/lab3/src/lab2_protocol/aa.py
