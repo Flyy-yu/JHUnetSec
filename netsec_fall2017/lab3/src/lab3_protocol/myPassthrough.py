@@ -21,14 +21,11 @@ logging.getLogger().addHandler(logging.StreamHandler())  # logs to stderr
 # M5, C->S:  PlsHandshakeDone( Sha1(M1, M2, M3, M4) )
 # M6, S->C:  PlsHandshakeDone( Sha1(M1, M2, M3, M4) )
 
-
 # State machine for client SL
 # 0: intial state, send C → S: PlsHello(Nc, [C_Certs])
 # 1: receive PlsHello, send C->S:  PlsKeyExchange( {PKc}S_public, Ns+1 )
 # 2: receive PlsKeyExchange, send PlsHandshakeDone
 # 3: receive PlsHandshakeDone, handshake done
-
-
 class PassThroughc1(StackingProtocol):
     def __init__(self):
         self.transport = None
@@ -103,11 +100,11 @@ class PassThroughc1(StackingProtocol):
                 else:
                     print("Hash validated error!")
             elif isinstance(pkt, PlsData) and self.handshake:
-                plaintext = self.decrypt(self.Eks, self.IVs, pkt.Ciphertext)
                 hm1 = HMAC.new(self.MKs, digestmod=SHA256)
                 hm1.update(pkt.Ciphertext)
                 verifyMac = hm1.digest()
                 if (verifyMac == pkt.Mac):
+                    plaintext = self.decrypt(self.Eks, self.IVs, pkt.Ciphertext)
                     print("--------------Mac Verified---------------")
                     self.higherProtocol().data_received(plaintext)
                 else:
@@ -303,12 +300,12 @@ class PassThroughs1(StackingProtocol):
                 else:
                     print("Hash validated error!")
             elif isinstance(pkt, PlsData) and self.handshake:
-                plaintext = self.decrypt(self.Ekc, self.IVc, pkt.Ciphertext)
                 hm1 = HMAC.new(self.MKc, digestmod=SHA256)
                 hm1.update(pkt.Ciphertext)
                 verifyMac = hm1.digest()
                 if(verifyMac == pkt.Mac):
                     print("--------------Mac Verified---------------")
+                    plaintext = self.decrypt(self.Ekc, self.IVc, pkt.Ciphertext)
                     self.higherProtocol().data_received(plaintext)
                 else:
                     self.send_pls_close("Mac Verification Failed")
