@@ -4,8 +4,8 @@ import logging
 import asyncio
 
 
-# logging.getLogger().setLevel(logging.NOTSET)  # this logs *everything*
-# logging.getLogger().addHandler(logging.StreamHandler())  # logs to stderr
+logging.getLogger().setLevel(logging.NOTSET)  # this logs *everything*
+logging.getLogger().addHandler(logging.StreamHandler())  # logs to stderr
 
 
 class PassThroughc1(StackingProtocol):
