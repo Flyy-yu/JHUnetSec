@@ -361,7 +361,7 @@ if __name__ == "__main__":
 # Email Address []:<Your email address>
 # Challenge: <LEAVE BLANK>
 # Company: <Your Name>
-# python -m test.ThroughputTester [client or server] --reference-stack=lab2_protocol
+# python -m test.ThroughputTester [client or server] --reference-stack=lab3_protocol
 # server 20174.1.6666.1  -set_serial 176
 # client 20174.1.6666.2 -set_serial 41
 
