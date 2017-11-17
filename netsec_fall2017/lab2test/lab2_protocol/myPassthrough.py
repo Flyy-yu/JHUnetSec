@@ -53,7 +53,7 @@ class PassThroughc2(StackingProtocol):
         self.transport = None
         self._deserializer = PEEPPacket.Deserializer()
         self.handshake = False
-        self.seq = random.randint(0, 5000)
+        self.seq = 0
         self.state = 0
         self.ack_counter = 0
         self.expected_packet = 0
@@ -138,7 +138,7 @@ class PassThroughc2(StackingProtocol):
                         print("------------------------------")
                         print("upper level start here")
                         # setup the self.info_list for this protocal
-                        self.expected_packet = pkt.SequenceNumber + 1
+                        self.expected_packet = pkt.SequenceNumber
                         self.expected_ack = pkt.SequenceNumber + packet_size
                         # setup stuff for data transfer
                         self.info_list.sequenceNumber = self.seq
@@ -154,27 +154,27 @@ class PassThroughc2(StackingProtocol):
                 elif self.handshake:
                     if pkt.Type == 5:
                         if verify_packet(pkt, self.expected_packet):
-                            # print("verify_packet from server")
+                            print("verify_packet from server")
                             self.lastcorrect = pkt.SequenceNumber + len(pkt.Data)
                             self.expected_packet = self.expected_packet + len(pkt.Data)
                             Ackpacket = generate_ACK(self.seq, pkt.SequenceNumber + len(pkt.Data))
-                            # print("seq number:" + str(pkt.SequenceNumber))
+                            print("seq number:" + str(pkt.SequenceNumber))
                             self.transport.write(Ackpacket.__serialize__())
                             self.higherProtocol().data_received(pkt.Data)
                         else:
 
                             Ackpacket = generate_ACK(self.seq, self.lastcorrect)
-                            # print("seq number:" + str(pkt.SequenceNumber))
+                            print("seq number:" + str(pkt.SequenceNumber))
                             print("the client ack number out last correct: " + str(self.lastcorrect))
                             self.transport.write(Ackpacket.__serialize__())
 
                     if pkt.Type == 2:
                         if verify_ack(pkt):
                             self.ack_counter = self.ack_counter + 1
-                            # print(self.ack_counter)
-                            # print("I got an ACK")
-                            # print(pkt.Acknowledgement)
-                            # print("ack number:" + str(pkt.Acknowledgement))
+                            print(self.ack_counter)
+                            print("I got an ACK")
+                            print(pkt.Acknowledgement)
+                            print("ack number:" + str(pkt.Acknowledgement))
 
                             if self.info_list.sequenceNumber < pkt.Acknowledgement:
                                 self.info_list.sequenceNumber = pkt.Acknowledgement
@@ -296,26 +296,26 @@ class PassThroughs2(StackingProtocol):
                 elif self.handshake:
                     if pkt.Type == 5:
                         if verify_packet(pkt, self.expected_packet):
-                            # print("verify_packet from server")
+                            print("verify_packet from server")
                             self.lastcorrect = pkt.SequenceNumber + len(pkt.Data)
                             self.expected_packet = self.expected_packet + len(pkt.Data)
                             Ackpacket = generate_ACK(self.seq, pkt.SequenceNumber + len(pkt.Data))
-                            # print("seq number:" + str(pkt.SequenceNumber))
+                            print("seq number:" + str(pkt.SequenceNumber))
                             self.transport.write(Ackpacket.__serialize__())
                             self.higherProtocol().data_received(pkt.Data)
                         else:
                             Ackpacket = generate_ACK(self.seq, self.lastcorrect)
-                            # print("seq number:" + str(pkt.SequenceNumber))
+                            print("seq number:" + str(pkt.SequenceNumber))
                             print("the server ack number out last correct: " + str(self.lastcorrect))
                             self.transport.write(Ackpacket.__serialize__())
 
                     if pkt.Type == 2:
                         if verify_ack(pkt):
                             self.ack_counter = self.ack_counter + 1
-                            # print(self.ack_counter)
-                            # print("I got an ACK")
-                            # print(pkt.Acknowledgement)
-                            # print("ack number:" + str(pkt.Acknowledgement))
+                            print(self.ack_counter)
+                            print("I got an ACK")
+                            print(pkt.Acknowledgement)
+                            print("ack number:" + str(pkt.Acknowledgement))
 
                             if self.info_list.sequenceNumber < pkt.Acknowledgement:
                                 self.info_list.sequenceNumber = pkt.Acknowledgement
