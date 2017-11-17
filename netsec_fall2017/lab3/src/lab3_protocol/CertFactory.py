@@ -321,8 +321,10 @@ def main4():
 
 
 if __name__ == "__main__":
-    verify_certchain(getServerCert())
+    #verify_certchain(getServerCert())
     #main3()
+    print(getCertForAddr())
+    print(getClientCert())
 
 
 
