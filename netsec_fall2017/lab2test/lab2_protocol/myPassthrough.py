@@ -105,10 +105,10 @@ class PassThroughc2(StackingProtocol):
         self.transport = transport
         SYN = PEEPPacket()
         SYN.SequenceNumber = self.seq
-        self.seq = self.seq + 1
+        self.seq = self.seq
         SYN.Type = 0  # SYN - TYPE 0
         SYN.Checksum = SYN.calculateChecksum()
-        print("client: SYN sent")
+        logging.info('\nClient: sent SYN: '+str(self.seq))
         SYNbyte = SYN.__serialize__()
         self.transport.write(SYNbyte)
         #self.resentsyn(SYN)
@@ -119,30 +119,29 @@ class PassThroughc2(StackingProtocol):
         for pkt in self._deserializer.nextPackets():
             if isinstance(pkt, PEEPPacket):
                 if pkt.Type == 1 and self.state == 0 and not self.handshake:
-                    print("SYN-ACK received")
+                    logging.info('\nSYN-ACK received: '+str(pkt.SequenceNumber))
                     if pkt.verifyChecksum():
                         ACK = PEEPPacket()
                         ACK.Type = 2  # ACK -  TYPE 2
                         self.seq = self.seq + 1
                         ACK.updateSeqAcknumber(seq=self.seq, ack=pkt.SequenceNumber + 1)
-                        #ACK.Data = None
-                        #ACK.SequenceNumber = self.seq
-                        #ACK.Acknowledgement = pkt.SequenceNumber + 1
-
-                        print("client: ACK sent")
+                        logging.info('client: ACK sent'+"\tseq:"+str(self.seq)+'\tack:'+str(pkt.SequenceNumber + 1))
                         ACK.Checksum = ACK.calculateChecksum()
                         self.transport.write(ACK.__serialize__())
                         self.state = 1
 
-                        print("ACK sent, handshake done")
-                        print("------------------------------")
-                        print("upper level start here")
+                        logging.info("\nACK sent, handshake done")
+                        logging.info("------------------------------------------------------------------------------------------------------------------------")
+                        logging.info("upper level start here")
                         # setup the self.info_list for this protocal
-                        self.expected_packet = pkt.SequenceNumber
+                        self.expected_packet = pkt.SequenceNumber + 1 # TODO change this for test
+                        logging.info("expected_packet:"+str(self.expected_packet))
                         self.expected_ack = pkt.SequenceNumber + packet_size
+                        logging.info("expected_ack:"+str(self.expected_ack))
                         # setup stuff for data transfer
                         self.info_list.sequenceNumber = self.seq
                         self.info_list.init_seq = self.seq
+                        logging.info("initial seq:"+str(self.seq)+"\n")
                         self.higherTransport = MyTransport(self.transport)
                         self.higherTransport.setinfo(self.info_list)
                         self.higherProtocol().connection_made(self.higherTransport)
@@ -154,11 +153,13 @@ class PassThroughc2(StackingProtocol):
                 elif self.handshake:
                     if pkt.Type == 5:
                         if verify_packet(pkt, self.expected_packet):
-                            print("verify_packet from server")
+                            print("\nverify_packet from server")
                             self.lastcorrect = pkt.SequenceNumber + len(pkt.Data)
+                            logging.info("lastcorrect" + str(self.lastcorrect))
                             self.expected_packet = self.expected_packet + len(pkt.Data)
                             Ackpacket = generate_ACK(self.seq, pkt.SequenceNumber + len(pkt.Data))
                             print("seq number:" + str(pkt.SequenceNumber))
+                            print("generate ack:"+str(pkt.SequenceNumber + len(pkt.Data)))
                             self.transport.write(Ackpacket.__serialize__())
                             self.higherProtocol().data_received(pkt.Data)
                         else:
@@ -171,8 +172,8 @@ class PassThroughc2(StackingProtocol):
                     if pkt.Type == 2:
                         if verify_ack(pkt):
                             self.ack_counter = self.ack_counter + 1
-                            print(self.ack_counter)
-                            print("I got an ACK")
+                            print("\nack_counter:" + str(self.ack_counter))
+                            print("I got an ACK:")
                             print(pkt.Acknowledgement)
                             print("ack number:" + str(pkt.Acknowledgement))
 
@@ -259,13 +260,13 @@ class PassThroughs2(StackingProtocol):
             if isinstance(pkt, PEEPPacket):
                 if pkt.Type == 0 and self.state == 0:
                     if pkt.verifyChecksum():
-                        print("received SYN")
+                        logging.info("\nServer: received SYN:"+str(pkt.SequenceNumber))
                         SYN_ACK = PEEPPacket()
                         SYN_ACK.Type = 1
                         self.seq = self.seq + 1
                         SYN_ACK.updateSeqAcknumber(seq=self.seq, ack=pkt.SequenceNumber + 1)
+                        logging.info('Server: SYN-ACK sent' + "\tseq:" + str(self.seq) + '\tack:' + str(pkt.SequenceNumber + 1))
                         SYN_ACK.Checksum = SYN_ACK.calculateChecksum()
-                        print("server: SYN-ACK sent")
                         self.transport.write(SYN_ACK.__serialize__())
                         self.state = 1
                         #self.resentsynack(SYN_ACK)
@@ -273,17 +274,19 @@ class PassThroughs2(StackingProtocol):
                 elif pkt.Type == 2 and self.state == 1 and not self.handshake:
                     if pkt.verifyChecksum():
                         self.state = 3
-                        print("got ACK, handshake done")
-                        print("------------------------------")
-                        print("upper level start here")
+                        logging.info("\nServer: got ACK, handshake done, ACK:"+str(pkt.Acknowledgement))
+                        logging.info("------------------------------------------------------------------------------------------")
+                        logging.info("upper level start here")
                         # setup the self.info_list for this protocal
 
                         self.expected_packet = pkt.SequenceNumber
+                        print("expected_packet:" + str(self.expected_packet))
                         self.expected_ack = pkt.SequenceNumber + packet_size
+                        print("expected_ack:" + str(self.expected_ack))
                         # setup stuff for data transfer
                         self.info_list.sequenceNumber = self.seq
                         self.info_list.init_seq = self.seq
-
+                        print("initial seq:" + str(self.seq)+"\n")
                         self.higherTransport = MyTransport(self.transport)
                         self.higherTransport.setinfo(self.info_list)
                         self.higherProtocol().connection_made(self.higherTransport)
@@ -296,11 +299,13 @@ class PassThroughs2(StackingProtocol):
                 elif self.handshake:
                     if pkt.Type == 5:
                         if verify_packet(pkt, self.expected_packet):
-                            print("verify_packet from server")
+                            logging.info("\nverify_packet from client")
                             self.lastcorrect = pkt.SequenceNumber + len(pkt.Data)
+                            logging.info("lastcorrect"+str(self.lastcorrect))
                             self.expected_packet = self.expected_packet + len(pkt.Data)
                             Ackpacket = generate_ACK(self.seq, pkt.SequenceNumber + len(pkt.Data))
                             print("seq number:" + str(pkt.SequenceNumber))
+                            print("generate ack:" + str(pkt.SequenceNumber + len(pkt.Data)))
                             self.transport.write(Ackpacket.__serialize__())
                             self.higherProtocol().data_received(pkt.Data)
                         else:
@@ -312,9 +317,8 @@ class PassThroughs2(StackingProtocol):
                     if pkt.Type == 2:
                         if verify_ack(pkt):
                             self.ack_counter = self.ack_counter + 1
-                            print(self.ack_counter)
-                            print("I got an ACK")
-                            print(pkt.Acknowledgement)
+                            print("\nack_counter:"+str(self.ack_counter))
+                            print("I got an ACK:")
                             print("ack number:" + str(pkt.Acknowledgement))
 
                             if self.info_list.sequenceNumber < pkt.Acknowledgement:
@@ -354,10 +358,10 @@ class PassThroughs2(StackingProtocol):
 def verify_packet(packet, expected_packet):
     goodpacket = True
     if packet.verifyChecksum() == False:
-        print("wrong checksum")
+        print("\nwrong checksum")
         goodpacket = False
     if expected_packet != packet.SequenceNumber:
-        print("expect_number:" + str(expected_packet))
+        print("\nexpect_number:" + str(expected_packet))
         print("packet number: " + str(packet.SequenceNumber))
         print("wrong packet seq number")
         goodpacket = False
@@ -367,7 +371,7 @@ def verify_packet(packet, expected_packet):
 def verify_ack(packet):
     goodpacket = True
     if packet.verifyChecksum() == False:
-        print("wrong checksum")
+        print("\nwrong checksum")
         goodpacket = False
     return goodpacket
 

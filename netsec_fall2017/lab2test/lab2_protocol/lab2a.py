@@ -3,20 +3,20 @@ import random
 import sys, time, os, logging, asyncio
 from .myPassthrough import *
 # test for sbw
-#from .lab2sbw.src.lab2_protocol import *
+from .lab2sbw.src.lab2_protocol import *
 
 # test for biubiubiu
 #from .lab2biubiu.src.lab2_protocol import *
 #from .lab2biubiu.src.lab2_protocol.PEEPPacket import *
 
 # test for gqy
-from .lab2gqy.protocols import *
-from .playgroundpackets.PEEPPacket import *
+# from .lab2gqy.protocols import *
+# from .playgroundpackets.PEEPPacket import *
 
 # this is the client
 class MyProtocolClient(asyncio.Protocol):
     def __init__(self, name, loop):
-        self.name = "abc"
+        self.name = "abfdsfasdfdsfsdfddfdfdsfsdfsdfsdfsdfasdfsdfdfdfdfasdfasdfadfasdfsdfsdfafddadadsafsdfdsadfdfadadfadadfadasdc"
         self.loop = loop
         self.transport = None
         self._deserializer = PacketType.Deserializer()
@@ -126,8 +126,8 @@ def basicUnitTest():
     if 0 not in echoArgs:
         sys.exit("1")
 
-    fclient = StackingProtocolFactory(lambda: PassThroughc1(), lambda: PEEPClient())
-    fserver = StackingProtocolFactory(lambda: PassThroughs1(), lambda: PassThroughs2())
+    fclient = StackingProtocolFactory(lambda: PassThroughc1(), lambda: PassThroughc2())
+    fserver = StackingProtocolFactory(lambda: PassThroughs1(), lambda: PEEPServerProtocol())
 
     lab2Connector = playground.Connector(protocolStack=(
         fclient,
