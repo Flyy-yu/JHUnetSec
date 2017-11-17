@@ -176,7 +176,7 @@ class PEEPServerProtocol(StackingProtocol):
 						# self.state = "error_state"
 					else:
 						self.peeptransport.pass_close = True
-						outBoundPacket = Util.create_outbound_packet(4, None, packet.SequenceNumber+1) #TODO seq num and ack num
+						outBoundPacket = Util.create_outbound_packet(4, None, packet.SequenceNumber+1) #seq num and ack num
 						if self.logging:
 							print("\n-------------PEEP Server Protocol Termination Starts--------------------\n")
 							print("PEEP Server Side: RIP reveived: Seq = %d, Checksum = (%d)"%(packet.SequenceNumber, packet.Checksum))
