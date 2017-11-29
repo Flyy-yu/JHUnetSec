@@ -3,15 +3,15 @@ import random
 import sys, time, os, logging, asyncio
 from .myPassthrough import *
 # test for sbw
-from .lab2sbw.src.lab2_protocol import *
+# from .lab2sbw.src.lab2_protocol import *
 
 # test for biubiubiu
 #from .lab2biubiu.src.lab2_protocol import *
 #from .lab2biubiu.src.lab2_protocol.PEEPPacket import *
 
 # test for gqy
-# from .lab2gqy.protocols import *
-# from .playgroundpackets.PEEPPacket import *
+from .lab2gqy.protocols import *
+from .playgroundpackets.PEEPPacket import *
 
 # this is the client
 class MyProtocolClient(asyncio.Protocol):
@@ -101,7 +101,7 @@ class MyProtocolServer(asyncio.Protocol):
 #
 
 def PeepClientFactory():
-    fclient = StackingProtocolFactory(lambda: PassThroughc1(), lambda: PassThroughc2())
+    fclient = StackingProtocolFactory(lambda: PassThroughc1(), lambda: PEEPClient())
     return fclient
 
 
@@ -127,7 +127,7 @@ def basicUnitTest():
         sys.exit("1")
 
     fclient = StackingProtocolFactory(lambda: PassThroughc1(), lambda: PassThroughc2())
-    fserver = StackingProtocolFactory(lambda: PassThroughs1(), lambda: PEEPServerProtocol())
+    fserver = StackingProtocolFactory(lambda: PassThroughs1(), lambda: PEEPServer())
 
     lab2Connector = playground.Connector(protocolStack=(
         fclient,

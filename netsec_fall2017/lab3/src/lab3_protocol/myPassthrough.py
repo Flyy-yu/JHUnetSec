@@ -1,19 +1,22 @@
-import time
-import os
 from .MyProtocolTransport import *
+from .CertFactory import *
+from playground.common.CipherUtil import *
 import logging
 import asyncio
 import hashlib
-from .CertFactory import *
-from Crypto.PublicKey import RSA
-from playground.common.CipherUtil import *
 from Crypto.Cipher import AES
 from Crypto.Util import Counter
+from Crypto.Cipher.PKCS1_OAEP import PKCS1OAEP_Cipher
+from Crypto.PublicKey import RSA
+from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography import x509
 from Crypto.Hash import HMAC, SHA256
-
+from binascii import hexlify
+from OpenSSL import crypto
 logging.getLogger().setLevel(logging.NOTSET)  # this logs *everything*
 logging.getLogger().addHandler(logging.StreamHandler())  # logs to stderr
 
+key_bytes = 32
 # M1, C->S:  PlsHello(Nc, [C_Certs])
 # M2, S->C:  PlsHello(Ns, [S_Certs])
 # M3, C->S:  PlsKeyExchange( {PKc}S_public, Ns+1 )
@@ -36,10 +39,10 @@ class PassThroughc1(StackingProtocol):
         self.C_Nonce = 0
         self.S_Nonce = 0
         self.S_Certs = []
-        self.C_Certs = getClientCert()
+        self.C_Certs = getCertsForAddr("20174.1.6666.1")
         self.PKc = os.urandom(16)
         self.PKs = b''
-        self.C_privKey = getClientKey()
+        self.C_privKey = getPrivateKeyForAddr("20174.1.6666.1")
         self.hashresult = hashlib.sha1()
         self.shash = hashlib.sha1()
         self.block = []
@@ -192,6 +195,24 @@ class PassThroughc1(StackingProtocol):
             cert = crypto.load_certificate(crypto.FILETYPE_PEM, cert)
             crypto_list.append(cert)
 
+        # verify playground address
+        address = self.transport.get_extra_info("peername")[0]
+        logging.info("PLS received a connection from address {}".format(address))
+        logging.info("Common name: {}".format(X509_list[0].subject.get_attributes_for_oid(NameOID.COMMON_NAME)[0].value))
+        logging.info("Email address: {}".format(X509_list[0].subject.get_attributes_for_oid(NameOID.EMAIL_ADDRESS)[0].value))
+        if address ==  X509_list[0].subject.get_attributes_for_oid(NameOID.COMMON_NAME)[0].value:
+            print("Common name verified")
+        else:
+            print("Common name error")
+            return False
+        for i in range(len(X509_list) - 1):
+            this = X509_list[i].subject.get_attributes_for_oid(NameOID.COMMON_NAME)[0].value
+            if this.startswith(X509_list[i+1].subject.get_attributes_for_oid(NameOID.COMMON_NAME)[0].value):
+                print("Address verified")
+            else:
+                return False
+                print("Address error")
+
         # verify the issuer and subject
         for i in range(len(crypto_list) - 1):
             issuer = crypto_list[i].get_issuer()
@@ -235,11 +256,11 @@ class PassThroughs1(StackingProtocol):
         self.state = 0
         self.C_Nonce = 0
         self.S_Nonce = 0
-        self.S_Certs = getServerCert()
+        self.S_Certs = getCertsForAddr("20174.1.6666.1")
         self.C_Certs = []
         self.PKs = os.urandom(16)
         self.PKc = b''
-        self.SPriK = getServerKey()
+        self.SPriK = getPrivateKeyForAddr("20174.1.6666.1")
         self.hashresult = hashlib.sha1()
         self.shash = hashlib.sha1()
         self.block = []
@@ -384,6 +405,26 @@ class PassThroughs1(StackingProtocol):
             cert = crypto.load_certificate(crypto.FILETYPE_PEM, cert)
             crypto_list.append(cert)
 
+        # verify playground address
+        address = self.transport.get_extra_info("peername")[0]
+        logging.info("PLS received a connection from address {}".format(address))
+        logging.info(
+            "Common name: {}".format(X509_list[0].subject.get_attributes_for_oid(NameOID.COMMON_NAME)[0].value))
+        logging.info(
+            "Email address: {}".format(X509_list[0].subject.get_attributes_for_oid(NameOID.EMAIL_ADDRESS)[0].value))
+        if address == X509_list[0].subject.get_attributes_for_oid(NameOID.COMMON_NAME)[0].value:
+            print("Common name verified")
+        else:
+            print("Common name error")
+            return False
+        for i in range(len(X509_list) - 1):
+            this = X509_list[i].subject.get_attributes_for_oid(NameOID.COMMON_NAME)[0].value
+            if this.startswith(X509_list[i + 1].subject.get_attributes_for_oid(NameOID.COMMON_NAME)[0].value):
+                print("Address verified")
+            else:
+                return False
+                print("Address error")
+
         # verify the issuer and subject
         for i in range(len(crypto_list) - 1):
             issuer = crypto_list[i].get_issuer()
@@ -408,8 +449,23 @@ class PassThroughs1(StackingProtocol):
                 print("signature verified")
         return True
 
+def GetCommonName(cert):
+    commonNameList = cert.subject.get_attributes_for_oid(NameOID.COMMON_NAME)
+    if len(commonNameList) != 1: return None
+    commonNameAttr = commonNameList[0]
+    return commonNameAttr.value
 
-
+def VerifyCertSignature(cert, issuer):
+    try:
+        issuer.public_key().verify(
+            cert.signature,
+            cert.tbs_certificate_bytes,
+            padding.PKCS1v15(),
+            hashes.SHA256()
+        )
+        return True
+    except:
+        return False
 #
 
 

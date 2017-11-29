@@ -2,13 +2,13 @@ from playground.network.common import *
 #from .mypacket import *
 
 #test for sbw
-from .lab2sbw.src.lab2_packets import *
+#from .lab2sbw.src.lab2_packets import *
 
 # test for biubiu
 #from .lab2biubiu.src.lab2_protocol.PEEPPacket import *
 
 #test for gqy
-#from .playgroundpackets import *
+from .playgroundpackets import *
 
 packet_size = 1000
 window_size = 5
