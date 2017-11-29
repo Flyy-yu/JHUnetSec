@@ -66,7 +66,8 @@ class PassThroughc1(StackingProtocol):
                 self.hashresult.update(pkt.__serialize__())
                 self.S_Nonce = pkt.Nonce
                 self.S_Certs = pkt.Certs
-                if(self.verify_certchain(self.S_Certs)):
+                address = self.transport.get_extra_info("peername")[0]
+                if(verify_certchain(self.S_Certs, address)):
                     print("cert verified")
                 else:
                     self.send_pls_close()
@@ -107,7 +108,7 @@ class PassThroughc1(StackingProtocol):
                 hm1.update(pkt.Ciphertext)
                 verifyMac = hm1.digest()
                 if (verifyMac == pkt.Mac):
-                    plaintext = self.decrypt(self.Eks, self.IVs, pkt.Ciphertext)
+                    plaintext = decrypt(self.Eks, self.IVs, pkt.Ciphertext)
                     print("--------------Mac Verified---------------")
                     self.higherProtocol().data_received(plaintext)
                 else:
@@ -165,81 +166,10 @@ class PassThroughc1(StackingProtocol):
         self.MKc = self.block_bytes[128:160]
         self.MKs = self.block_bytes[160:192]
 
-
-    def decrypt(self, key, iv, ciphertext):
-        assert len(key) == key_bytes
-
-        # Initialize counter for decryption. iv should be the same as the output of
-        # encrypt().
-        iv_int = int(iv, 16)
-        ctr = Counter.new(AES.block_size * 8, initial_value=iv_int)
-
-        # Create AES-CTR cipher.
-        aes = AES.new(key, AES.MODE_CTR, counter=ctr)
-
-        # Decrypt and return the plaintext.
-        plaintext = aes.decrypt(ciphertext)
-        return plaintext
-
     def send_pls_close(self, error_info=None):
         err_packet = PlsClose()
         err_packet.Error = error_info
         self.transport.write(err_packet.__serialize__())
-
-    def verify_certchain(self, certs):
-        X509_list = []
-        crypto_list = []
-        for cert in certs:
-            x509obj = x509.load_pem_x509_certificate(cert, default_backend())
-            X509_list.append(x509obj)
-            cert = crypto.load_certificate(crypto.FILETYPE_PEM, cert)
-            crypto_list.append(cert)
-
-        # verify playground address
-        address = self.transport.get_extra_info("peername")[0]
-        logging.info("PLS received a connection from address {}".format(address))
-        logging.info("Common name: {}".format(X509_list[0].subject.get_attributes_for_oid(NameOID.COMMON_NAME)[0].value))
-        logging.info("Email address: {}".format(X509_list[0].subject.get_attributes_for_oid(NameOID.EMAIL_ADDRESS)[0].value))
-        if address ==  X509_list[0].subject.get_attributes_for_oid(NameOID.COMMON_NAME)[0].value:
-            print("Common name verified")
-        else:
-            print("Common name error")
-            return False
-        for i in range(len(X509_list) - 1):
-            this = X509_list[i].subject.get_attributes_for_oid(NameOID.COMMON_NAME)[0].value
-            if this.startswith(X509_list[i+1].subject.get_attributes_for_oid(NameOID.COMMON_NAME)[0].value):
-                print("Address verified")
-            else:
-                return False
-                print("Address error")
-
-        # verify the issuer and subject
-        for i in range(len(crypto_list) - 1):
-            issuer = crypto_list[i].get_issuer()
-            print(issuer)
-            subject = crypto_list[i + 1].get_subject()
-            print(subject)
-            if issuer == subject:
-                print("issuer and subject verified")
-            else:
-                return False
-
-        # verify the signature sha256
-        for i in range(len(X509_list) - 1):
-            this = X509_list[i]
-            # print(this)
-            # print(this.signature)
-            sig = RSA_SIGNATURE_MAC(X509_list[i + 1].public_key())
-            # print(issuer)
-            if not sig.verify(this.tbs_certificate_bytes, this.signature):
-                return False
-            else:
-                print("signature verified")
-        return True
-
-
-
-
 
 
 # State machine for server SL
@@ -276,7 +206,8 @@ class PassThroughs1(StackingProtocol):
                 self.hashresult.update(bytes(pkt.__serialize__()))
                 self.C_Nonce = pkt.Nonce
                 self.C_Certs = pkt.Certs
-                if (self.verify_certchain(self.C_Certs)):
+                address = self.transport.get_extra_info("peername")[0]
+                if (verify_certchain(self.C_Certs, address)):
                     print("cert verified")
                 else:
                     self.send_pls_close()
@@ -326,7 +257,7 @@ class PassThroughs1(StackingProtocol):
                 verifyMac = hm1.digest()
                 if(verifyMac == pkt.Mac):
                     print("--------------Mac Verified---------------")
-                    plaintext = self.decrypt(self.Ekc, self.IVc, pkt.Ciphertext)
+                    plaintext = decrypt(self.Ekc, self.IVc, pkt.Ciphertext)
                     self.higherProtocol().data_received(plaintext)
                 else:
                     self.send_pls_close("Mac Verification Failed")
@@ -381,73 +312,11 @@ class PassThroughs1(StackingProtocol):
         self.MKc = self.block_bytes[128:160]
         self.MKs = self.block_bytes[160:192]
 
-    def decrypt(self, key, iv, ciphertext):
-        assert len(key) == key_bytes
-        iv_int = int(iv, 16)
-        ctr = Counter.new(AES.block_size * 8, initial_value=iv_int)
-        # Create AES-CTR cipher.
-        aes = AES.new(key, AES.MODE_CTR, counter=ctr)
-        # Decrypt and return the plaintext.
-        plaintext = aes.decrypt(ciphertext)
-        return plaintext
-
     def send_pls_close(self, error_info=None):
         err_packet = PlsClose()
         err_packet.Error = error_info
         self.transport.write(err_packet.__serialize__())
 
-    def verify_certchain(self, certs):
-        X509_list = []
-        crypto_list = []
-        for cert in certs:
-            x509obj = x509.load_pem_x509_certificate(cert, default_backend())
-            X509_list.append(x509obj)
-            cert = crypto.load_certificate(crypto.FILETYPE_PEM, cert)
-            crypto_list.append(cert)
-
-        # verify playground address
-        address = self.transport.get_extra_info("peername")[0]
-        logging.info("PLS received a connection from address {}".format(address))
-        logging.info(
-            "Common name: {}".format(X509_list[0].subject.get_attributes_for_oid(NameOID.COMMON_NAME)[0].value))
-        logging.info(
-            "Email address: {}".format(X509_list[0].subject.get_attributes_for_oid(NameOID.EMAIL_ADDRESS)[0].value))
-        if address == X509_list[0].subject.get_attributes_for_oid(NameOID.COMMON_NAME)[0].value:
-            print("Common name verified")
-        else:
-            print("Common name error")
-            return False
-        for i in range(len(X509_list) - 1):
-            this = X509_list[i].subject.get_attributes_for_oid(NameOID.COMMON_NAME)[0].value
-            if this.startswith(X509_list[i + 1].subject.get_attributes_for_oid(NameOID.COMMON_NAME)[0].value):
-                print("Address verified")
-            else:
-                return False
-                print("Address error")
-
-        # verify the issuer and subject
-        for i in range(len(crypto_list) - 1):
-            issuer = crypto_list[i].get_issuer()
-            print(issuer)
-            subject = crypto_list[i + 1].get_subject()
-            print(subject)
-            if issuer == subject:
-                print("issuer and subject verified")
-            else:
-                return False
-
-        # verify the signature sha256
-        for i in range(len(X509_list) - 1):
-            this = X509_list[i]
-            # print(this)
-            # print(this.signature)
-            sig = RSA_SIGNATURE_MAC(X509_list[i + 1].public_key())
-            # print(issuer)
-            if not sig.verify(this.tbs_certificate_bytes, this.signature):
-                return False
-            else:
-                print("signature verified")
-        return True
 
 def GetCommonName(cert):
     commonNameList = cert.subject.get_attributes_for_oid(NameOID.COMMON_NAME)
@@ -466,6 +335,76 @@ def VerifyCertSignature(cert, issuer):
         return True
     except:
         return False
+
+def verify_certchain(certs,address):
+    cert_chain = []
+    for cert in certs:
+        cert_chain.append(cert)
+    cert_chain.append(getRootCert())
+    X509_list = []
+    crypto_list = []
+    for cert in cert_chain:
+        x509obj = x509.load_pem_x509_certificate(cert, default_backend())
+        X509_list.append(x509obj)
+        cert = crypto.load_certificate(crypto.FILETYPE_PEM, cert)
+        crypto_list.append(cert)
+
+    # verify playground address
+    logging.info("PLS received a connection from address {}".format(address))
+    logging.info(
+        "Common name: {}".format(X509_list[0].subject.get_attributes_for_oid(NameOID.COMMON_NAME)[0].value))
+    logging.info(
+        "Email address: {}".format(X509_list[0].subject.get_attributes_for_oid(NameOID.EMAIL_ADDRESS)[0].value))
+    if address == X509_list[0].subject.get_attributes_for_oid(NameOID.COMMON_NAME)[0].value:
+        print("Common name verified")
+    else:
+        print("Common name error")
+        return False
+    for i in range(len(X509_list) - 1):
+        this = X509_list[i].subject.get_attributes_for_oid(NameOID.COMMON_NAME)[0].value
+        if this.startswith(X509_list[i + 1].subject.get_attributes_for_oid(NameOID.COMMON_NAME)[0].value):
+            print("Address verified")
+        else:
+            return False
+            print("Address error")
+
+    # verify the issuer and subject
+    for i in range(len(crypto_list) - 1):
+        issuer = crypto_list[i].get_issuer()
+        print(issuer)
+        subject = crypto_list[i + 1].get_subject()
+        print(subject)
+        if issuer == subject:
+            print("issuer and subject verified")
+        else:
+            return False
+
+    # verify the signature sha256
+    for i in range(len(X509_list) - 1):
+        this = X509_list[i]
+        # print(this)
+        # print(this.signature)
+        sig = RSA_SIGNATURE_MAC(X509_list[i + 1].public_key())
+        # print(issuer)
+        if not sig.verify(this.tbs_certificate_bytes, this.signature):
+            return False
+        else:
+            print("signature verified")
+    return True
+
+def decrypt(key, iv, ciphertext):
+    assert len(key) == key_bytes
+    iv_int = int(iv, 16)
+    ctr = Counter.new(AES.block_size * 8, initial_value=iv_int)
+    # Create AES-CTR cipher.
+    aes = AES.new(key, AES.MODE_CTR, counter=ctr)
+    # Decrypt and return the plaintext.
+    plaintext = aes.decrypt(ciphertext)
+    return plaintext
+
+
+
+
 #
 
 
