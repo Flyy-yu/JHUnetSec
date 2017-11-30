@@ -62,10 +62,8 @@ class MyTransport(StackingTransport):
                 small_packet.SequenceNumber = self.info_list.sequenceNumber
                 self.info_list.sequenceNumber += len(packet_data)
                 n = 999
-            print("this is the out seq number from write: " + str(self.info_list.sequenceNumber))
             small_packet.Type = 5  # data packet
             small_packet.Data = packet_data
-            # small_packet.SessionId = self.info_list.SessionId
             small_packet.Checksum = small_packet.calculateChecksum()
 
             print(self.lowerTransport().is_closing())

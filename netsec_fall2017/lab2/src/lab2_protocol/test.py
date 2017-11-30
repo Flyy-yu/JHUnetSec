@@ -21,13 +21,13 @@ loop = asyncio.get_event_loop()
 loop.set_debug(enabled=True)
 
 if mode.lower() == "server":
-    coro = playground.getConnector('lab2_protocol').create_playground_server(lambda: MyProtocolServer(), 101)
+    coro = playground.getConnector('wzz').create_playground_server(lambda: MyProtocolServer(), 101)
     server = loop.run_until_complete(coro)
     print("my Server Started at {}".format(server.sockets[0].gethostname()))
     loop.run_forever()
     loop.close()
-
-
+#my_team_lab2_protocol
+#lab2_protocol
 else:
     address = mode
     coro = playground.getConnector('lab2_protocol').create_playground_connection(

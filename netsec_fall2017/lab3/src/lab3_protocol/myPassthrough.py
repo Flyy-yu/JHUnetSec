@@ -405,11 +405,6 @@ def decrypt(key, iv, ciphertext):
     return plaintext
 
 
-
-
-#
-
-
 # state machine for client
 # 0: initial state
 # 1: SYN sent, wait for SYN-ACK
@@ -441,10 +436,8 @@ class PassThroughc2(StackingProtocol):
                 self.ack_counter = 0
                 self.timeout_timer = time.time()
                 self.higherTransport.sent_data()
-            else:
-                print("client waiting...to...end")
 
-        if time.time() - self.close_timer > 5:
+        if time.time() - self.close_timer > 10:
             self.forceclose += 1
             self.close_timer = time.time()
             Rip = PEEPPacket()
@@ -598,7 +591,6 @@ class PassThroughs2(StackingProtocol):
                 self.timeout_timer = time.time()
                 self.ack_counter = 0
             else:
-                print("server waiting...for..RIP")
                 if time.time() - self.close_timer > 30:
                     self.info_list.readyToclose = True
                     self.higherTransport.close()

@@ -4,8 +4,8 @@ import logging
 import asyncio
 
 
-logging.getLogger().setLevel(logging.NOTSET)  # this logs *everything*
-logging.getLogger().addHandler(logging.StreamHandler())  # logs to stderr
+# logging.getLogger().setLevel(logging.NOTSET)  # this logs *everything*
+# logging.getLogger().addHandler(logging.StreamHandler())  # logs to stderr
 
 
 class PassThroughc1(StackingProtocol):
@@ -110,7 +110,7 @@ class PassThroughc2(StackingProtocol):
         print("client: SYN sent")
         SYNbyte = SYN.__serialize__()
         self.transport.write(SYNbyte)
-        self.resentsyn(SYN)
+        #self.resentsyn(SYN)
 
     def data_received(self, data):
         self.close_timer = time.time()
@@ -262,7 +262,7 @@ class PassThroughs2(StackingProtocol):
                         print("server: SYN-ACK sent")
                         self.transport.write(SYN_ACK.__serialize__())
                         self.state = 1
-                        self.resentsynack(SYN_ACK)
+                        #self.resentsynack(SYN_ACK)
 
                 elif pkt.Type == 2 and self.state == 1 and not self.handshake:
                     if pkt.verifyChecksum():
