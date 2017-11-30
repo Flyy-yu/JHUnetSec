@@ -1,6 +1,6 @@
 from .MyProtocolTransport import *
 from .CertFactory import *
-from playground.common.CipherUtil import *
+from playground.common.CipherUtil import RSA_SIGNATURE_MAC
 import logging
 import asyncio
 import hashlib
@@ -8,13 +8,15 @@ from Crypto.Cipher import AES
 from Crypto.Util import Counter
 from Crypto.Cipher.PKCS1_OAEP import PKCS1OAEP_Cipher
 from Crypto.PublicKey import RSA
+from cryptography.hazmat.backends import default_backend
+from cryptography.x509.oid import NameOID
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography import x509
-from Crypto.Hash import HMAC, SHA256
+from Crypto.Hash import HMAC, SHA, SHA256
 from binascii import hexlify
 from OpenSSL import crypto
-logging.getLogger().setLevel(logging.NOTSET)  # this logs *everything*
-logging.getLogger().addHandler(logging.StreamHandler())  # logs to stderr
+#logging.getLogger().setLevel(logging.NOTSET)  # this logs *everything*
+#logging.getLogger().addHandler(logging.StreamHandler())  # logs to stderr
 
 key_bytes = 32
 # M1, C->S:  PlsHello(Nc, [C_Certs])
@@ -105,12 +107,12 @@ class PassThroughc1(StackingProtocol):
                 else:
                     print("Hash validated error!")
             elif isinstance(pkt, PlsData) and self.handshake:
-                hm1 = HMAC.new(self.MKs, digestmod=SHA256)
+                hm1 = HMAC.new(self.MKs, digestmod=SHA)
                 hm1.update(pkt.Ciphertext)
                 verifyMac = hm1.digest()
                 if (verifyMac == pkt.Mac):
-                    plaintext = decrypt(self.Eks, self.IVs, pkt.Ciphertext)
-                    print("--------------Mac Verified---------------")
+                    plaintext = decrypt(self.enc_aes, pkt.Ciphertext)
+                    logging.info("--------------Mac Verified---------------")
                     self.higherProtocol().data_received(plaintext)
                 else:
                     self.send_pls_close("Mac Verification Failed")
@@ -141,31 +143,24 @@ class PassThroughc1(StackingProtocol):
         return Decrypter.decrypt(ciphertext)
 
     def gen_block(self):
-        print(str(self.C_Nonce).encode('utf-8') + str(self.S_Nonce).encode('utf-8') + str(self.PKc).encode('utf-8') + str(self.PKs).encode('utf-8'))
-        self.shash.update("PLS1.0".encode('utf-8') + str(self.C_Nonce).encode('utf-8') + str(self.S_Nonce).encode('utf-8') + str(self.PKc).encode('utf-8') + str(self.PKs).encode('utf-8'))
-        self.block.append(self.shash.digest())
-        # block_1
-        self.shash.update(str(self.block[0]).encode('utf-8'))
-        self.block.append(self.shash.digest())
-        # block_2
-        self.shash.update(str(self.block[1]).encode('utf-8'))
-        self.block.append(self.shash.digest())
-        # block_3
-        self.shash.update(str(self.block[2]).encode('utf-8'))
-        self.block.append(self.shash.digest())
-        # block_4
-        self.shash.update(str(self.block[3]).encode('utf-8'))
-        self.block.append(self.shash.digest())
-        # for blo in self.block:
-        #    print(blo)
-        self.block_bytes = hexlify(self.block[0] + self.block[1] + self.block[2] + self.block[3] + self.block[4])
+        block_0 = hashlib.sha1(b"PLS1.0" + self.C_Nonce.to_bytes(8, byteorder='big') + self.S_Nonce.to_bytes(8,byteorder='big') + self.PKc + self.PKs).digest()
+        block_1 = hashlib.sha1(block_0).digest()
+        block_2 = hashlib.sha1(block_1).digest()
+        block_3 = hashlib.sha1(block_2).digest()
+        block_4 = hashlib.sha1(block_3).digest()
+        block_bytes = block_0 + block_1 + block_2 + block_3 + block_4
         # print(len(self.block_bytes))
-        self.Ekc = self.block_bytes[0:32]
-        self.Eks = self.block_bytes[32:64]
-        self.IVc = self.block_bytes[64:96]
-        self.IVs = self.block_bytes[96:128]
-        self.MKc = self.block_bytes[128:160]
-        self.MKs = self.block_bytes[160:192]
+        self.Ekc = block_bytes[0:16]
+        self.Eks = block_bytes[16:32]
+        self.IVc = block_bytes[32:48]
+        self.IVs = block_bytes[48:64]
+        self.MKc = block_bytes[64:80]
+        self.MKs = block_bytes[80:96]
+
+        iv_int = int(hexlify(self.IVs), 16)
+        self.enc_ctr = Counter.new(AES.block_size * 8, initial_value=iv_int)
+        # Create AES-CTR cipher.
+        self.enc_aes = AES.new(self.Eks, AES.MODE_CTR, counter=self.enc_ctr)
 
     def send_pls_close(self, error_info=None):
         err_packet = PlsClose()
@@ -210,7 +205,7 @@ class PassThroughs1(StackingProtocol):
                 self.C_Certs = pkt.Certs
                 address = self.transport.get_extra_info("peername")[0]
                 if (verify_certchain(self.C_Certs, address)):
-                    print("cert verified")
+                    logging.info("cert verified")
                 else:
                     self.send_pls_close()
                     self.higherTransport.close("Cert Verification Failed")
@@ -221,12 +216,12 @@ class PassThroughs1(StackingProtocol):
                 self.hashresult.update(bytes(helloPkt.__serialize__()))
                 self.state = 1
                 self.transport.write(helloPkt.__serialize__())
-                print("server: PlsHello sent")
+                logging.info("server: PlsHello sent")
             elif isinstance(pkt, PlsKeyExchange) and self.state == 1:
                 self.hashresult.update(bytes(pkt.__serialize__()))
                 # check nc
                 if pkt.NoncePlusOne == self.S_Nonce + 1:
-                    print("server: check NC+1")
+                    logging.info("server: check NC+1")
                     self.PKc = self.dec_prekey(pkt.PreKey)
                     keyExchange = PlsKeyExchange()
                     keyExchange.PreKey = self.enc_prekey()
@@ -235,12 +230,12 @@ class PassThroughs1(StackingProtocol):
                     self.state = 2
                     self.transport.write(keyExchange.__serialize__())
                 else:
-                    print("server: NC+1 error")
+                    logging.info("server: NC+1 error")
                     self.higherTransport.close("NC Verification Failed")
             elif isinstance(pkt, PlsHandshakeDone) and self.state == 2:
                 hdshkdone = PlsHandshakeDone()
                 hdshkdone.ValidationHash = self.hashresult.digest()
-                print("server: Reveive handshake done")
+                logging.info("server: Reveive handshake done")
                 # check hash
                 if self.hashresult.digest() == pkt.ValidationHash:
                     self.state = 3
@@ -254,12 +249,12 @@ class PassThroughs1(StackingProtocol):
                 else:
                     print("Hash validated error!")
             elif isinstance(pkt, PlsData) and self.handshake:
-                hm1 = HMAC.new(self.MKc, digestmod=SHA256)
+                hm1 = HMAC.new(self.MKc, digestmod=SHA)
                 hm1.update(pkt.Ciphertext)
                 verifyMac = hm1.digest()
                 if(verifyMac == pkt.Mac):
-                    print("--------------Mac Verified---------------")
-                    plaintext = decrypt(self.Ekc, self.IVc, pkt.Ciphertext)
+                    logging.info("--------------Mac Verified---------------")
+                    plaintext = decrypt(self.enc_aes, pkt.Ciphertext)
                     self.higherProtocol().data_received(plaintext)
                 else:
                     self.send_pls_close("Mac Verification Failed")
@@ -290,29 +285,24 @@ class PassThroughs1(StackingProtocol):
         return Decrypter.decrypt(ciphertext)
 
     def gen_block(self):
-        print(str(self.C_Nonce).encode('utf-8') + str(self.S_Nonce).encode('utf-8') + str(self.PKc).encode('utf-8') + str(self.PKs).encode('utf-8'))
-        self.shash.update("PLS1.0".encode('utf-8') + str(self.C_Nonce).encode('utf-8') + str(self.S_Nonce).encode('utf-8') + str(self.PKc).encode('utf-8') + str(self.PKs).encode('utf-8'))
-        self.block.append(self.shash.digest())
-        # block_1
-        self.shash.update(str(self.block[0]).encode('utf-8'))
-        self.block.append(self.shash.digest())
-        # block_2
-        self.shash.update(str(self.block[1]).encode('utf-8'))
-        self.block.append(self.shash.digest())
-        # block_3
-        self.shash.update(str(self.block[2]).encode('utf-8'))
-        self.block.append(self.shash.digest())
-        # block_4
-        self.shash.update(str(self.block[3]).encode('utf-8'))
-        self.block.append(self.shash.digest())
-        self.block_bytes = hexlify(self.block[0] + self.block[1] + self.block[2] + self.block[3] + self.block[4])
+        block_0 = hashlib.sha1(b"PLS1.0" + self.C_Nonce.to_bytes(8, byteorder='big') + self.S_Nonce.to_bytes(8,byteorder='big') + self.PKc + self.PKs).digest()
+        block_1 = hashlib.sha1(block_0).digest()
+        block_2 = hashlib.sha1(block_1).digest()
+        block_3 = hashlib.sha1(block_2).digest()
+        block_4 = hashlib.sha1(block_3).digest()
+        block_bytes = block_0 + block_1 + block_2 + block_3 + block_4
         # print(len(self.block_bytes))
-        self.Ekc = self.block_bytes[0:32]
-        self.Eks = self.block_bytes[32:64]
-        self.IVc = self.block_bytes[64:96]
-        self.IVs = self.block_bytes[96:128]
-        self.MKc = self.block_bytes[128:160]
-        self.MKs = self.block_bytes[160:192]
+        self.Ekc = block_bytes[0:16]
+        self.Eks = block_bytes[16:32]
+        self.IVc = block_bytes[32:48]
+        self.IVs = block_bytes[48:64]
+        self.MKc = block_bytes[64:80]
+        self.MKs = block_bytes[80:96]
+
+        iv_int = int(hexlify(self.IVc), 16)
+        self.enc_ctr = Counter.new(AES.block_size * 8, initial_value=iv_int)
+        # Create AES-CTR cipher.
+        self.enc_aes = AES.new(self.Ekc, AES.MODE_CTR, counter=self.enc_ctr)
 
     def send_pls_close(self, error_info=None):
         err_packet = PlsClose()
@@ -358,26 +348,26 @@ def verify_certchain(certs,address):
     logging.info(
         "Email address: {}".format(X509_list[0].subject.get_attributes_for_oid(NameOID.EMAIL_ADDRESS)[0].value))
     if address == X509_list[0].subject.get_attributes_for_oid(NameOID.COMMON_NAME)[0].value:
-        print("Common name verified")
+        logging.info("Common name verified")
     else:
-        print("Common name error")
+        logging.info("Common name error")
         return False
     for i in range(len(X509_list) - 1):
         this = X509_list[i].subject.get_attributes_for_oid(NameOID.COMMON_NAME)[0].value
         if this.startswith(X509_list[i + 1].subject.get_attributes_for_oid(NameOID.COMMON_NAME)[0].value):
-            print("Address verified")
+            logging.info("Address verified")
         else:
             return False
-            print("Address error")
+            logging.info("Address error")
 
     # verify the issuer and subject
     for i in range(len(crypto_list) - 1):
         issuer = crypto_list[i].get_issuer()
-        print(issuer)
+        logging.info(issuer)
         subject = crypto_list[i + 1].get_subject()
-        print(subject)
+        logging.info(subject)
         if issuer == subject:
-            print("issuer and subject verified")
+            logging.info("issuer and subject verified")
         else:
             return False
 
@@ -391,18 +381,20 @@ def verify_certchain(certs,address):
         if not sig.verify(this.tbs_certificate_bytes, this.signature):
             return False
         else:
-            print("signature verified")
+            logging.info("signature verified")
     return True
 
-def decrypt(key, iv, ciphertext):
-    assert len(key) == key_bytes
-    iv_int = int(iv, 16)
-    ctr = Counter.new(AES.block_size * 8, initial_value=iv_int)
-    # Create AES-CTR cipher.
-    aes = AES.new(key, AES.MODE_CTR, counter=ctr)
+def decrypt(aes, ciphertext):
+
     # Decrypt and return the plaintext.
     plaintext = aes.decrypt(ciphertext)
+    logging.info("-----------------Dec----------------")
     return plaintext
+
+
+
+
+#
 
 
 # state machine for client
@@ -437,7 +429,8 @@ class PassThroughc2(StackingProtocol):
                 self.timeout_timer = time.time()
                 self.higherTransport.sent_data()
 
-        if time.time() - self.close_timer > 10:
+
+        if time.time() - self.close_timer > 99999:
             self.forceclose += 1
             self.close_timer = time.time()
             Rip = PEEPPacket()
@@ -508,7 +501,7 @@ class PassThroughc2(StackingProtocol):
                         # client and server should be the same, start from here
                 elif self.handshake:
                     if pkt.Type == 5:
-                        if verify_packet(pkt, self.expected_packet + 1):
+                        if verify_packet(pkt, self.expected_packet+1):
                             # print("verify_packet from server")
                             self.lastcorrect = pkt.SequenceNumber + len(pkt.Data)
                             self.expected_packet = self.expected_packet + len(pkt.Data)
@@ -591,7 +584,8 @@ class PassThroughs2(StackingProtocol):
                 self.timeout_timer = time.time()
                 self.ack_counter = 0
             else:
-                if time.time() - self.close_timer > 30:
+                #print("server waiting...for..RIP")
+                if time.time() - self.close_timer > 90:
                     self.info_list.readyToclose = True
                     self.higherTransport.close()
                     return

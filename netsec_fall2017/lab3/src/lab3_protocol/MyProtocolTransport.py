@@ -3,11 +3,14 @@ from .mypacket import *
 from .CertFactory import *
 from Crypto.Cipher import AES
 from Crypto.Util import Counter
-from Crypto.Hash import HMAC, SHA256
+from Crypto.Hash import HMAC, SHA256, SHA
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes, hmac
 packet_size = 1000
 window_size = 5
-
-
+from binascii import hexlify
+import logging
 class item_list():
     sequenceNumber = 0
     SessionId = ''
@@ -62,10 +65,13 @@ class MyTransport(StackingTransport):
                 small_packet.SequenceNumber = self.info_list.sequenceNumber
                 self.info_list.sequenceNumber += len(packet_data)
                 n = 999
+            logging.info("this is the out seq number from write: " + str(self.info_list.sequenceNumber))
             small_packet.Type = 5  # data packet
             small_packet.Data = packet_data
+            # small_packet.SessionId = self.info_list.SessionId
             small_packet.Checksum = small_packet.calculateChecksum()
 
+            #print(self.lowerTransport().is_closing())
             self.lowerTransport().write(small_packet.__serialize__())
 
             if n > window_size:
@@ -78,35 +84,24 @@ class MyTransport(StackingTransport):
 class PLSTransport(StackingTransport):
     def write(self, data):
         PLSpacket = PlsData()
-        print("PLS transport got data")
-        ciphertext = self.encrypto_data(data)
+        logging.info("PLS transport got data")
+        ciphertext = self.enc_aes.update(data)
+        logging.info("---------------Enc---------------")
         PLSpacket.Ciphertext = ciphertext
-
-        hm1 = HMAC.new(self.mac, digestmod=SHA256)
+        hm1 = hmac.HMAC(self.mac, hashes.SHA1(), backend=default_backend())
         hm1.update(ciphertext)
-        PLSpacket.Mac = hm1.digest()
+        PLSpacket.Mac = hm1.finalize()
         self.lowerTransport().write(PLSpacket.__serialize__())
 
     def get_info(self, key, iv, mk):
         self.key = key
         self.iv = iv
         self.mac = mk
-
-    def encrypto_data(self, data):
-        assert len(self.key) == 32
-        iv_int = int(self.iv, 16)
-
-        # Create a new Counter object with IV = iv_int.
-        ctr = Counter.new(AES.block_size * 8, initial_value=iv_int)
-
-        # Create AES-CTR cipher.
-        aes = AES.new(self.key, AES.MODE_CTR, counter=ctr)
-
-        # Encrypt and return IV and ciphertext.
-        ciphertext = aes.encrypt(data)
-        print("--------------------enc--------------------")
-        return ciphertext
-
+        # set up enc engine
+        self.enc_aes = Cipher(algorithms.AES(self.key), modes.CTR(self.iv), backend=default_backend()).encryptor()
+        #iv_int = int(hexlify(self.iv), 16)
+        #self.ctr = Counter.new(AES.block_size * 8, initial_value=iv_int)
+        #self.aes = AES.new(self.key, AES.MODE_CTR, counter=self.ctr)
 
     def close(self):
         self.lowerTransport().close()

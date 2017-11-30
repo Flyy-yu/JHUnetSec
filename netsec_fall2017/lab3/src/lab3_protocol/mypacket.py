@@ -78,20 +78,6 @@ class PEEPPacket(PacketType):
 # RIP-ACK -  TYPE 4
 # DATA -      TYPE 5
 
-'''
-    def generateNonce(self,length):
-        """Generate pseudo-random number."""
-        return ''.join([str(random.randint(0, 9)) for i in range(length)])
-
-    def generate_timestamp(self):
-        """Get seconds since epoch (UTC)."""
-        return str(int(time.time()))
-
-    def generate_nonce_timestamp(self):
-        """Generate pseudo-random number and seconds since epoch (UTC)."""
-        nonce = uuid.uuid1()
-        oauth_timestamp, oauth_nonce = str(nonce.time), nonce.hex
-        return oauth_nonce, oauth_timestamp'''
 
 class PacketBaseType(PacketType):
     DEFINITION_IDENTIFIER = "netsecfall2017.pls.base"
@@ -107,7 +93,6 @@ class PlsHello(PacketBaseType):
         ("Nonce", UINT64),
         ("Certs", LIST(BUFFER))
     ]
-
 
 
 class PlsKeyExchange(PacketBaseType):
