@@ -496,7 +496,7 @@ class PassThroughc2(StackingProtocol):
                         self.expected_packet = pkt.SequenceNumber
                         self.expected_ack = pkt.SequenceNumber + packet_size
                         # setup stuff for data transfer
-                        self.info_list.sequenceNumber = self.seq
+                        self.info_list.sequenceNumber = self.seq - 1
                         self.info_list.init_seq = self.seq
                         self.higherTransport = MyTransport(self.transport)
                         self.higherTransport.setinfo(self.info_list)
@@ -508,7 +508,7 @@ class PassThroughc2(StackingProtocol):
                         # client and server should be the same, start from here
                 elif self.handshake:
                     if pkt.Type == 5:
-                        if verify_packet(pkt, self.expected_packet):
+                        if verify_packet(pkt, self.expected_packet + 1):
                             # print("verify_packet from server")
                             self.lastcorrect = pkt.SequenceNumber + len(pkt.Data)
                             self.expected_packet = self.expected_packet + len(pkt.Data)
