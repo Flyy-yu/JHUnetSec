@@ -39,10 +39,8 @@ class PassThroughc1(StackingProtocol):
         self.C_Nonce = 0
         self.S_Nonce = 0
         self.S_Certs = []
-        self.C_Certs = getCertsForAddr("20174.1.6666.1")
         self.PKc = os.urandom(16)
         self.PKs = b''
-        self.C_privKey = getPrivateKeyForAddr("20174.1.6666.1")
         self.hashresult = hashlib.sha1()
         self.shash = hashlib.sha1()
         self.block = []
@@ -50,6 +48,9 @@ class PassThroughc1(StackingProtocol):
     def connection_made(self, transport):
         print("SL connection made")
         self.transport = transport
+        address, port = transport.get_extra_info("sockname")
+        self.C_Certs = getCertsForAddr(address)
+        self.C_privKey = getPrivateKeyForAddr(address)
         helloPkt = PlsHello()
         self.C_Nonce = random.getrandbits(64)
         helloPkt.Nonce = self.C_Nonce
@@ -186,11 +187,9 @@ class PassThroughs1(StackingProtocol):
         self.state = 0
         self.C_Nonce = 0
         self.S_Nonce = 0
-        self.S_Certs = getCertsForAddr("20174.1.6666.1")
         self.C_Certs = []
         self.PKs = os.urandom(16)
         self.PKc = b''
-        self.SPriK = getPrivateKeyForAddr("20174.1.6666.1")
         self.hashresult = hashlib.sha1()
         self.shash = hashlib.sha1()
         self.block = []
@@ -198,6 +197,9 @@ class PassThroughs1(StackingProtocol):
     def connection_made(self, transport):
         print("SL connection made server")
         self.transport = transport
+        address, port = transport.get_extra_info("sockname")
+        self.S_Certs = getCertsForAddr(address)
+        self.SPriK = getPrivateKeyForAddr(address)
 
     def data_received(self, data):
         self._deserializer.update(data)
