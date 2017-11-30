@@ -66,7 +66,6 @@ class MyTransport(StackingTransport):
             small_packet.Data = packet_data
             small_packet.Checksum = small_packet.calculateChecksum()
 
-            print(self.lowerTransport().is_closing())
             self.lowerTransport().write(small_packet.__serialize__())
 
             if n > window_size:
