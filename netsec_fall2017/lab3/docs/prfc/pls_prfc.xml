@@ -1,0 +1,310 @@
+<?xml version="1.0" encoding="US-ASCII"?>
+<!-- This template is modified by Seth Nielson for creating P-RFC's
+    (Playground-RFC's). -->
+<!-- This template is for creating an Internet Draft using xml2rfc,
+    which is available here: http://xml2rfc.ietf.org. -->
+<!DOCTYPE rfc SYSTEM "rfc2629.dtd" [
+
+<!-- One method to get references from the online citation libraries.
+    There has to be one entity for each item to be referenced. 
+    An alternate method (rfc include) is described in the references. -->
+<!ENTITY RFC2119 SYSTEM "http://xml2rfc.tools.ietf.org/public/rfc/bibxml/reference.RFC.2119.xml">
+<!ENTITY RFC2360 SYSTEM "http://xml2rfc.tools.ietf.org/public/rfc/bibxml/reference.RFC.2360.xml">
+<!ENTITY RFC2629 SYSTEM "http://xml2rfc.tools.ietf.org/public/rfc/bibxml/reference.RFC.2629.xml">
+<!ENTITY RFC3552 SYSTEM "http://xml2rfc.tools.ietf.org/public/rfc/bibxml/reference.RFC.3552.xml">
+<!ENTITY RFC5226 SYSTEM "http://xml2rfc.tools.ietf.org/public/rfc/bibxml/reference.RFC.5226.xml">
+]>
+<?xml-stylesheet type='text/xsl' href='rfc2629.xslt' ?>
+<!-- used by XSLT processors -->
+<!-- For a complete list and description of processing instructions (PIs), 
+    please see http://xml2rfc.ietf.org/authoring/README.html. -->
+<!-- Below are generally applicable Processing Instructions (PIs) that most I-Ds might want to use.
+    (Here they are set differently than their defaults in xml2rfc v1.32) -->
+<?rfc strict="yes" ?>
+<!-- give errors regarding ID-nits and DTD validation -->
+<!-- control the table of contents (ToC) -->
+<?rfc toc="yes"?>
+<!-- generate a ToC -->
+<?rfc tocdepth="4"?>
+<!-- the number of levels of subsections in ToC. default: 3 -->
+<!-- control references -->
+<?rfc symrefs="yes"?>
+<!-- use symbolic references tags, i.e, [RFC2119] instead of [1] -->
+<?rfc sortrefs="yes" ?>
+<!-- sort the reference entries alphabetically -->
+<!-- control vertical white space 
+    (using these PIs as follows is recommended by the RFC Editor) -->
+<?rfc compact="yes" ?>
+<!-- do not start each main section on a new page -->
+<?rfc subcompact="no" ?>
+<!-- keep one blank line between list items -->
+<!-- end of list of popular I-D processing instructions -->
+<rfc category="std" docName="rfc1" ipr="playgroundStd_v1_0" number="1">
+  <!-- category values: std, bcp, info, exp, and historic
+    ipr values: trust200902, noModificationTrust200902, noDerivativesTrust200902,
+       or pre5378Trust200902, playgroundWinter201501
+    you can add the attributes updates="NNNN" and obsoletes="NNNN" 
+    they will automatically be output with "(if approved)" -->
+  <!-- ***** FRONT MATTER ***** -->
+  <front>
+    <!-- The abbreviated title is used in the page header - it is only necessary if the 
+        full title is longer than 39 characters -->
+    <title abbrev="PRFC's">Playground Request For Comments</title>
+    <!-- add 'role="editor"' below for the editors if appropriate -->
+    <!-- Another author who claims to be an editor -->
+    <author fullname="Peiyu Wang" initials="P.W." role="editor" surname="Wang">
+      <organization>JHU Network Security Fall 2017</organization>
+      <address>
+        <postal>
+          <street>JHU 160 Malone Hall/3400 North Charles St.</street>
+          <!-- Reorder these if your country does things differently -->
+          <city>Baltimore</city>
+          <region>MD</region>
+          <code>21218</code>
+          <country>USA</country>
+        </postal>
+        <phone>+1 443-449-3230</phone>
+        <email>zl@jhu.edu</email>
+        <!-- uri and facsimile elements may also be added -->
+      </address>
+    </author>
+    <date year="2017" />
+    <!-- If the month and year are both specified and are the current ones, xml2rfc will fill 
+        in the current day for you. If only the current year is specified, xml2rfc will fill 
+	 in the current day and month for you. If the year is not the current one, it is 
+	 necessary to specify at least a month (xml2rfc assumes day="1" if not specified for the 
+	 purpose of calculating the expiry date).  With drafts it is normally sufficient to 
+	 specify just the year. -->
+    <!-- Meta-data Declarations -->
+    <area>General</area>
+    <workgroup>Playground Experiment Director</workgroup>
+    <!-- WG name at the upperleft corner of the doc,
+        IETF is fine for individual submissions.  
+	 If this element is not present, the default is "Network Working Group",
+        which is used by the RFC Editor as a nod to the history of the IETF. -->
+    <keyword>PRFC</keyword>
+    <!-- Keywords will be incorporated into HTML output
+        files in a meta tag but they have no effect on text or nroff
+        output. If you submit your draft to the RFC Editor, the
+        keywords will be used for the search engine. -->
+    <abstract>
+      <t>This document specifies Playground Layer Security (PLS) protocol. The PLS protocol provides communication security over the Playground (Poly-Localized Algorithmic Yields Generated Remotely On Unused Network Devices). The protocol allows client/server applications to communicate in a way that is designed to prevent eavesdropping, tampering, or message forgery. </t>
+    </abstract>
+  </front>
+  <middle>
+    <section title="Introduction">
+      <t>The primary goal of the PLS protocol is to provide privacy and data integrity between two communicating applications.</t>
+      <t>The protocol is composed of two layers: the PLS Record Protocol and the PLS Handshake Protocol. PLS Record Protocol provides connection security that has two basic properties: (1) The connection is private. Symmetric cryptography, AES, is used for data encryption. The keys for this symmetric encryption are based on a secret negotiated while handshaking. (2) The connection is reliable. Message transport includes a message integrity check using a keyed MAC. Secure hash function, SHA1, is used for MAC computations. </t>
+      <t>PLS Handshake will perform before transport encrypted data. PLS Handshake allows the server and client to authenticate each other and to negotiate cryptographic keys before the application protocol transmits or receives its first byte of data. The PLS Handshake Protocol provides connection security that has three basic properties: (1) The peer's identity can be authenticated using asymmetric, or public key, cryptography, RSA. And each peer has a certificate signed by CA to prove their identities. (2) The negotiation of a shared secret is secure: the negotiated secret is unavailable to eavesdroppers, and for any authenticated connection the secret cannot be obtained, even by an attacker who can place in the middle of the connection. (3) The negotiation is reliable: no attacker can modify the negotiation communication without being detected by parties to the communication. </t>
+      <t>PLS is almost transparent to higher level, which is one of the advantages of PLS.</t>
+      <section title="Requirements Terminology">
+        <t>The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in <xref target="RFC2119">RFC 2119</xref>.
+        </t>
+      </section>
+      <section title="Goals">
+        <t>The goals of the PLS protocol, in order of priority, are as follows:</t>
+        <t>1.Cryptographic security: PLS should be used to establish a secure connection between two parties.</t>
+        <t>2.Interoperability: Independent programmers should be able to develop applications utilizing PLS that can successfully exchange cryptographic parameters without knowledge of one another's code.</t>
+        <t>3.Relative efficiency: Cryptographic operations tend to be highly CPU intensive, particularly public key operation. For this reason, the PLS protocol has incorporated an optional session caching scheme to reduce the number of connections that need to be established from scratch. Additionally, care has been taken to reduce network activity. </t>        
+      </section>
+    </section>
+    <section title="Operation">
+      <section title="Key Distribution">
+        <t>The PLS  protocol encrypts the transmitted data in AES algorithm.  As a symmetric encryption algorithm, both hosts have to share the same communication key for a connection.  Therefore, the PLS protocol MUST be able to generate and distribute a symmetric key to the opposite host.</t>
+        <t>In this protocol, since we're on the basis of PEEP layer, we'll extract and use the RSA asymmetric key to encrypt and transmit the AES key.  Apart from the keys, counters (or Initial Vectors) MUST be sent together with the keys in order to realize AES CTR mode.</t>
+      </section>
+      <section title="Interfaces">
+        <t>The PLS user interface provides calls to initial or close a connection, send or close messages for an open connection, and encrypt or decrypt data for transferring data.</t>
+      </section>
+      <section title="State Machine">
+        <t>State machine defines different state and the required conditions between different state. PLS   state machine could describe the different state of server and client and the transition conditions between state. Server and client have separate state during connection made, connection establishment, data transfer, connection close, which could more specifically describe how server or client could jump to next stage. It is also easier to locate and classify error by checking the state. In PLS protocol, Server and client both have 4 states.</t>
+      </section>
+      <section title="Error Handling">
+        <t>In PLS protocol, the HMAC-SHA1 is used to ensure the integrity of packets or data. HMAC is short for Keyed-Hashing for Message Authentication. In PLS protocol, HMAC is a message authentication code obtained by running a SHA1 hash over data and a shared secret key. SHA1 hash could help the receiver to ensure the data without alteration. The shared secret key between two sides could ensure the confidentiality of data.</t>
+      </section>
+    </section>
+    <section title="The PLS Record Protocol">
+      <t>The PLS Record Protocol is a layered protocol, which provides the confidentiality and integrity. This protocol takes messages to be transmitted, fragments the data into manageable blocks, applies a MAC, encrypts, and transmits the result. Received data is decrypted, verified, reassembled, and then delivered to higher-level clients.</t>
+      <section title="Connection States">
+        <t>A PLS connection state is the operating environment of the PLS Protocol. It specifies an encryption algorithm and a MAC algorithm. The encryption algorithm is to protect the integrity of the data while the MAC algorithm is to authenticate the data confidentiality. Logically, there are always four connection states outstanding: connection made, connection establishment, data transfer, and connection close. The initial state always specifies no encryption or MAC will be used.</t>
+      </section>
+      <section title="Key Calculation">
+        <t>The record layer will be used to generate the following six items:</t>
+        <figure align="center">
+          <artwork align="left">
+            <![CDATA[        
+            1: client MAC key
+            2: server MAC key
+            3: client encryption key
+            4: server encryption key
+            5: client IV
+            6: server IV
+            ]]>
+          </artwork>
+        </figure>
+        <t>The PLS Handshake Protocol and Encryption data transfer use the PLS Record Protocol. In the handshake protocol, RSA algorithm is to exchange the keys used for encryption in the data transfer. In the data transfer, the key is used for encrypting the data transmitted in the AES algorithm.</t>
+      </section>
+    </section>
+    <section title="Public Key Infrastructure (PKI) for PLS">
+      <t>PLS uses PKI to verify different parties identities. Root CA is a trusted third party, which we assume it can be trusted. Root CA will sign a certificate to intermediate CA, and intermediate CA will sign certificates to those parties in a group. In the PLS Handshake phase, two parties will exchange their certificates. Each side will check whether the certificate is signed by an intermediate CA, and whether the certificate of intermediate CA is signed by root CA. After verifying this trust chain, each side can know the identity of another side. If one of these certificates is not valid, the trust cannot build and the connection will end. </t>
+    </section>
+    <section title="The PLS Handshake Protocol ">
+      <t>PLS Handshake Protocol is used to allow peers to agree upon security parameters for the record layer, to authenticate themselves, to instantiate negotiated security parameters, and to report error conditions to each other. </t>
+      <section title="Handshake Protocol Overview">
+        <t>The cryptographic parameters of the session state are produced by the PLS Handshake, which operates on top of the PLS record layer. The PLS Handshake protocol involves the following steps:</t>
+        <t>1. Exchange hello message which contains each peer's certificate and allows the client and server to authenticate themselves. </t>
+        <t>2. Exchange the necessary cryptographic parameters to allow the client and server to agree on a premaster secret.</t>
+        <t>3. Generate a master secret from the premaster secret.</t>
+        <t>4. Provide security parameters to the record layer. </t>
+        <t>5. Allow the client and server to verify that their peer has calculated the same security parameters and that the handshake occurred without tampering by an attacker. </t>
+      </section>
+      <section title="Handshake Hello Messages">
+        <t>The hello phase messages are used to exchange each side's certificate and verify other's certificate. This message contains a certificate and a random nonce. The certificate is used to verify each side's identity. If the verification failed, the connection will be ended. The nonce is used to prevent attacker replay a hello message. </t>
+      </section>
+
+      <section title="Key Exchange Messages">
+        <t>In this phase, client and server will exchange an encrypted pre-key, a random number. With this pre-key, both sides will share the same secret and they can generate keys based on this secret. This pre-key is encrypted by other side's public key. For this reason, only the one who owns the certificate can get the pre-key. </t>
+      </section>
+
+      <section title="Handshake Done Messages">
+        <t>When the Handshake phase is going to end, each side MUST exchange the hash value of all those messages they sent and they got. With changing this message, both sides can know the message they got is the message the other side sends. And they can also know no message has been changed and they are on the same page of communication. If the hash value is different, it means their messages have been tampered and the connection MUST be ended. </t>
+      </section>
+    </section>
+
+    <section title="Implementation of PLS">
+      <section title="Packet Types">
+        <t>Implementation of PLS is based on 5 types of packets:</t>
+        <t>PlsHello: Send from both server and client, the beginning of connection.</t>                                     
+        <t>PlskeyExchange: Send from both server and client, to exchange the prekeys of each other.</t>
+        <t>PlsHandshakeDone: Send from both server and client, to establish the connection.</t>
+        <t>PlsData: Send from both server and client, to transmit the data.</t>
+        <t>PlsClose: Send from both server and client, to end the connection.</t>
+      </section>
+      <section title="State Machine">
+        <t>On the client side, there are 4 different states. When the state is set to 0, the client is inactive and waiting to send the PlsHello packet. After sending the PlsHello packet to the server, the client will wait for the reply from the server. When the client gets the PlsHello packet from the server, the client will validate the certificates of the server in the packets and extract 64 bits Ns which is random number and public key whose decryption key is only owned by the server. Then the client will transfer its state to 1. The client sends server PlsKeyExchange packet to contain the PKc which is a pre-key and  Ns+1, and wait for a reply from the server. When the client gets the PlsKeyExchange packet from the server, the client transfer its state to 2. The state would be transmitted to 3, when the client sends PlsHandshakeDone and then receives and validates the PlsHandshakeDone packet from the server.</t>
+        <t>PlsClose packet could be sent by the server and client. When the client sends or receives PlsClose packet, then client close the connection and  transfers its state to 0.</t>
+        <t>On the server side, there are also 4 different states, In state 0, the server is inactive and waiting for the PlsHello packet from client side. When server gets the PlsHello packet from the client, the server will validate the certificates of client in the packets and extract 64 bits Ns which is a random number and public key whose decryption key is only owned by client. After sending back PlsHello packet to client, server transfer its state to 1. The server receives and validates the PlsKeyExchange packet and send back PlsKeyExchange packet that contains its pre-key, then the server transfers its state to 2. The server would calculate the hash of previous four messages,  
+        when the server receive the PlsHandshakeDone packet from the client, the server check the number in the packet match the result of calculation. If match, the server will send back PlsHandshakeDone packet and transfer its state to 3.</t>
+        <t>PlsClose packet could be sent by the server and client. When the server sends or receives PlsClose packet, then server close the connection and transfer its state to 0.</t>
+      </section>
+      <section title="PLS Handshake">
+        <t>PLS connection is established by a 6-step handshake.</t>
+        <t>To ensure the security of handshake, PLS implement nonce validation, hash validation, asymmetric encryption and PKI principle in handshake between server and client.</t>
+        <t>The client sends PlsHello packet to the server, which contains 64 bit Nc(client nonce), its certificates and C_public(public key from client) inside. When the server receives the packetsand validate the identity of the client, the server sends back PlsHello packet.</t>
+        <t>The client also needs to validate the identity of the server, then send a Key exchange message which contains Ns(server nonce)+1 and pre-key encrypted by S_public(public key from server). The server check nonce number to ensure who it is talking to. The pre-key being encrypted by public key from server ensure only the server has the key to decrypt it. The server validates packet from client and replies PlsKeyExchange packet to client. 
+        When the key exchange phase is done, the client and the server would send a handshake finished message to each other, which contains the hash of the previous four messages, two hello messages and two key exchange messages. Check if the calculation hash and the number send from other side match, and ensure no party is replaced by the third party maliciously. While the server and the client receive and validate handshake finished message from each other, the 6-step handshake is done.</t>
+      </section>
+      <section title="Data Transfer">
+        <t>When handshake phrase is done, the client is going to send data to the server, or reverse.</t>
+        <t>In Pls protocol, we use symmetric encryption AES to ensure the confidentiality of data and HMAC-SHA1 to ensure the integrity of data. After the handshake phase, the server and the client share Nc Ns PKc(pre-key from client) and PKs(pre-key from server). The client and the server use shared information to create 4 keys and two IVs.</t>
+        <t>The client uses EKc as AES key and IVc as initial counter to encrypt data and use Eks and IVs to decrypt received data. </t>
+        <t>The server uses EKs as AES key and IVs as initial counter to encrypt data and use Ekc and IVc to decrypt received data. </t>
+      </section>
+      <section title="Connection Closing">
+        <t>Each side could close connection by sending PlsClose packet. When each side sends out PlsClose packet, each side could shut down connection immediately, doesn't need to wait for reply from another side. When each side receives the PlsClose packet, each side shuts down the connection immediately without response.</t>
+      </section>
+      <section title="Error Handling">
+        <t>In PLS protocol, the server and the client share keys MKc and MKs both produced by the same algorithm on each side. Each side creates HMAC-SHA1 MAC engine and verification engine. In the client side, the MAC engine is configured with key MKc, the verification engine is configured with key MKs.  The encrypted data would be passed to MAC engine to produce verification code. The encrypted data would be sent with the corresponding verification code. Received data would be passed to verification engine to produce a verification code and check the code with the verification code send from another side. If two codes match, it means the data is integral. If two codes don't match, error happen. The side catch error should send PlsClose packet with error message. If other side receives error message, it must shut down the connection.</t>
+      </section>
+    </section>
+
+    <section title="Cryptographic Computations">
+      <section title="RSA">
+        <t>For encryption of Client Pre-key and Server Pre-Key under the public key of server and client, respectively, we will be using RSA - 2048 with OAEP padding. The way to gensa -out &lt;private-key-file-name&gt; 2048</t>
+      </section>
+      <section title="AES AND CTR mode">
+        <t>The encryption method for PLS called Advanced Encryption Standard (AES). AES is a specification for the encryption of electronic data established by the U.S. National Institute of Standards and Technology (NIST) in 2001. Counter mode turns a block cipher into a stream cipher. It generates the next keystream block by encrypting successive values of a "counter".The counter can be any function which produces a sequence which is guaranteed not to repeat for a long time. The plaintext Xor with the encrypted counter will be our ciphertext.</t>
+      </section>
+      <section title="HMAC-SHA1 MAC">
+        <t>The PLS uses a keyed Message Authentication Code (MAC) to protect message integrity.  The cipher suites defined in this document use a construction known as HMAC(keyed-hash message authentication code), which is based on SHA1 hash function. For the client, the MAC engine is configured with key MKc. The verification engine is configured with key MKs. For the server, the keys are reversed between the two engines.</t>
+      </section>
+      <section title="Key Generation">
+        <t>The Client needs to generate:</t>
+        <figure align="center">
+          <artwork align="left">
+            <![CDATA[        
+            1:EKc-Client Encryption Key
+            2:EKs-Server Encryption Key
+            4:MKc-Client MAC Key
+            5:MKs-Server MAC Key
+            ]]>
+          </artwork>
+        </figure>
+        <t>The Server needs to generate the same four keys. Each key is 128bits. Each side also has to generate an IVc ("Client encryption IV") and IVs ("Server encryption IV"), each also of size 128bits. To derive each key, generate a stream using repeated SHA1 hashing of the seed "PLS1.0" + Nc + Ns + PKc + PKs. Each hash generates 160 bits.</t>
+        <t>block_0 = hash("PLS1.0"+Nc+Ns+PKc+PKs)</t>
+        <t>block_1 = hash(block_0)</t>
+        <t>block_2 = hash(block_1)</t>
+        <t>block_3 = hash(block_2)</t>
+        <t>block_4 = hash(block_3)</t>
+        <t>Generating 5 blocks will generate 800 bits. This 800 bits can be cut up to create the 768 bits of keys and IV's described above (with 32 bits discarded). This is the ordering of that derivation:</t>
+        <figure align="center">
+          <artwork align="left">
+            <![CDATA[        
+            1:EKc = first 128 bits
+            2:EKs = second 128 bits
+            3:IVc = third 128 bits
+            4:IVs = fourth 128 bits
+            5:MKc = 5th 128 bits
+            6:MKs = 6th 128 bits
+            ]]>
+          </artwork>
+        </figure>
+      </section>
+    </section>
+    
+
+
+
+    <section title="Copyright Information">
+      <t>The PLAYGROUND experiment is still new and has not yet developed a policy that has been reviewed by legal counsel. However, at present, the following text MUST be used in the PRFC's.</t>
+      <t>The copyright notice on the front page of the PRFC should read: "Copyright (c) 2017 SETH JAMES NIELSON. All rights reserved.</t>
+    </section>
+
+
+  </middle>
+  <!--  *****BACK MATTER ***** -->
+  <back>
+    <!-- References split into informative and normative -->
+    <!-- There are 2 ways to insert reference entries from the citation libraries:
+    1. define an ENTITY at the top, and use "ampersand character"RFC2629; here (as shown)
+    2. simply use a PI "less than character"?rfc include="reference.RFC.2119.xml"?> here
+       (for I-Ds: include="reference.I-D.narten-iana-considerations-rfc2434bis.xml")
+
+    Both are cited textually in the same manner: by using xref elements.
+    If you use the PI option, xml2rfc will, by default, try to find included files in the same
+    directory as the including file. You can also define the XML_LIBRARY environment variable
+    with a value containing a set of directories to search.  These can be either in the local
+    filing system or remote ones accessed by http (http://domain/dir/... ).-->
+    <references title="Normative References">
+      <!--?rfc include="http://xml2rfc.ietf.org/public/rfc/bibxml/reference.RFC.2119.xml"?-->     &RFC2119;          &RFC2360;        
+    </references>
+    <!-- Change Log
+
+v00 2006-03-15  EBD   Initial version
+
+v01 2006-04-03  EBD   Moved PI location back to position 1 -
+                     v3.1 of XMLmind is better with them at this location.
+v02 2007-03-07  AH    removed extraneous nested_list attribute,
+                     other minor corrections
+v03 2007-03-09  EBD   Added comments on null IANA sections and fixed heading capitalization.
+                     Modified comments around figure to reflect non-implementation of
+                     figure indent control.  Put in reference using anchor="DOMINATION".
+                     Fixed up the date specification comments to reflect current truth.
+v04 2007-03-09 AH     Major changes: shortened discussion of PIs,
+                     added discussion of rfc include.
+v05 2007-03-10 EBD    Added preamble to C program example to tell about ABNF and alternative 
+                     images. Removed meta-characters from comments (causes problems).
+
+v06 2010-04-01 TT     Changed ipr attribute values to latest ones. Changed date to
+                     year only, to be consistent with the comments. Updated the 
+                     IANA guidelines reference from the I-D to the finished RFC.  
+                     
+SETH NIELSON:
+  Altered for PLAYGROUND AND PRFC's
+  2016-09-21 SJN PRFC 1
+
+  Updated for Fall 2017
+  2017-10-1
+  -->
+  </back>
+</rfc>
