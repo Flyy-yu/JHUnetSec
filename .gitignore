@@ -3,8 +3,5 @@
 .idea/
 .DS_Store
 /lab3/certs/
-netsec_fall2017/lab3/certs/csr_file
-netsec_fall2017/lab3/certs/private_key
-netsec_fall2017/lab3/certs/root.crt
 netsec_fall2017/lab3/src/lab3_protocol/aa.py
-/netsec_fall2017/lab3/src/lab3_protocol/aa.py
+/netsec_fall2017/lab3/certs/*
