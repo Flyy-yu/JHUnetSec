@@ -45,8 +45,6 @@ class MyTransport(StackingTransport):
 
 
     def sent_data(self):
-        # print(len(self.info_list.outBuffer))
-        # print(self.info_list.sequenceNumber)
         small_packet = PEEPPacket()
         recordSeq = self.info_list.sequenceNumber
         for n in range(0, window_size):

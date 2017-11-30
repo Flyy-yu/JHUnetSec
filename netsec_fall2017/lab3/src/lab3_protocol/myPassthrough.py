@@ -432,6 +432,7 @@ class PassThroughc2(StackingProtocol):
                 self.higherTransport.sent_data()
 
         if time.time() - self.close_timer > 5 and self.info_list.readyToclose:
+
             self.forceclose += 1
             self.close_timer = time.time()
             Rip = PEEPPacket()
@@ -445,6 +446,8 @@ class PassThroughc2(StackingProtocol):
                 self.info_list.readyToclose = True
                 self.higherTransport.close()
                 return
+        else:
+            print("wait..")
 
         txDelay = 1
         asyncio.get_event_loop().call_later(txDelay, self.transmit)
