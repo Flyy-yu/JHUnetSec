@@ -394,8 +394,10 @@ def decrypt(aes, ciphertext):
 
 
 
-#
-
+#__________________________________________________________________________________________
+#__________________________________________________________________________________________
+#__________________________________________________________________________________________
+#PEEP
 
 # state machine for client
 # 0: initial state
@@ -429,8 +431,7 @@ class PassThroughc2(StackingProtocol):
                 self.timeout_timer = time.time()
                 self.higherTransport.sent_data()
 
-
-        if time.time() - self.close_timer > 99999:
+        if time.time() - self.close_timer > 5 and self.info_list.readyToclose:
             self.forceclose += 1
             self.close_timer = time.time()
             Rip = PEEPPacket()
@@ -531,7 +532,6 @@ class PassThroughc2(StackingProtocol):
                             if self.ack_counter == window_size and pkt.Acknowledgement < len(
                                     self.info_list.outBuffer) + self.seq:
                                 self.timeout_timer = time.time()
-                                print("next round")
                                 # self.info_list.from_where = "passthough"
                                 self.ack_counter = 0
 
@@ -542,7 +542,7 @@ class PassThroughc2(StackingProtocol):
                                 self.seq = pkt.Acknowledgement
                                 self.ack_counter = 0
                                 self.higherTransport.setinfo(self.info_list)
-                                print("done")
+
                     # improve this at lab3
                     if pkt.Type == 4:
                         print("get rip ack from server,close transport")

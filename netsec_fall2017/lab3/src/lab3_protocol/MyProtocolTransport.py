@@ -41,6 +41,8 @@ class MyTransport(StackingTransport):
             self.lowerTransport().close()
         else:
             print("waiting...")
+            self.info_list.readyToclose = True
+
 
     def sent_data(self):
         # print(len(self.info_list.outBuffer))
