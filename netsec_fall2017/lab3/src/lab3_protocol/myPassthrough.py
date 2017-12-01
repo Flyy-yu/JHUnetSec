@@ -4,6 +4,7 @@ from playground.common.CipherUtil import RSA_SIGNATURE_MAC
 import logging
 import asyncio
 import hashlib
+import sys
 from Crypto.Cipher import AES
 from Crypto.Util import Counter
 from Crypto.Cipher.PKCS1_OAEP import PKCS1OAEP_Cipher
@@ -548,6 +549,7 @@ class PassThroughc2(StackingProtocol):
                     # improve this at lab3
                     if pkt.Type == 4:
                         print("get rip ack from server, client transport closed")
+                        sys.exit("connection closed")
                         self.close_timer = 999999999
                         self.info_list.readyToclose = True
                         self.connection_lost(None)
@@ -696,6 +698,8 @@ class PassThroughs2(StackingProtocol):
                             RIP_ACK.updateSeqAcknumber(seq=self.info_list.sequenceNumber, ack=pkt.Acknowledgement)
                             RIP_ACK.Checksum = RIP_ACK.calculateChecksum()
                             print("server: RIP-ACK sent, ready to close")
+
+
                             self.transport.write(RIP_ACK.__serialize__())
                             self.info_list.readyToclose = True
                             self.higherTransport.close()
