@@ -431,7 +431,7 @@ class PassThroughc2(StackingProtocol):
                 self.timeout_timer = time.time()
                 self.higherTransport.sent_data()
 
-        if time.time() - self.close_timer > 60:
+        if time.time() - self.close_timer > 30:
             #self.transport = None
             self.forceclose += 1
             Rip = PEEPPacket()
@@ -547,10 +547,12 @@ class PassThroughc2(StackingProtocol):
 
                     # improve this at lab3
                     if pkt.Type == 4:
-                        print("get rip ack from server,close transport")
+                        print("get rip ack from server, client transport closed")
+                        self.close_timer = 999999999
                         self.info_list.readyToclose = True
                         self.connection_lost(None)
                         self.transport = None
+
 
     def connection_lost(self, exc):
         self.higherProtocol().connection_lost(exc)
