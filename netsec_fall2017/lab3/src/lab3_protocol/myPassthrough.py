@@ -434,20 +434,18 @@ class PassThroughc2(StackingProtocol):
         if time.time() - self.close_timer > 5 and self.info_list.readyToclose:
 
             self.forceclose += 1
-            self.close_timer = time.time()
             Rip = PEEPPacket()
             Rip.Type = 3
             Rip.updateSeqAcknumber(self.info_list.sequenceNumber, ack=1)
             print("client: Rip sent")
             Rip.Checksum = Rip.calculateChecksum()
             self.transport.write(Rip.__serialize__())
+            self.close_timer = time.time()
 
             if self.forceclose > 5:
                 self.info_list.readyToclose = True
                 self.higherTransport.close()
                 return
-        else:
-            print("wait..")
 
         txDelay = 1
         asyncio.get_event_loop().call_later(txDelay, self.transmit)
@@ -550,7 +548,8 @@ class PassThroughc2(StackingProtocol):
                     if pkt.Type == 4:
                         print("get rip ack from server,close transport")
                         self.info_list.readyToclose = True
-                        self.higherTransport.close()
+                        self.lowerTransport().close()
+                        self.lowerTransport().abort()
 
     def connection_lost(self, exc):
         self.higherProtocol().connection_lost(exc)
