@@ -431,7 +431,7 @@ class PassThroughc2(StackingProtocol):
                 self.timeout_timer = time.time()
                 self.higherTransport.sent_data()
 
-        if time.time() - self.close_timer > 5 and self.info_list.readyToclose:
+        if time.time() - self.close_timer > 5:
 
             self.forceclose += 1
             Rip = PEEPPacket()
