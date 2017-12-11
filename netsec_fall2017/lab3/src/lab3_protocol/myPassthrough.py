@@ -432,7 +432,7 @@ class PassThroughc2(StackingProtocol):
                 self.timeout_timer = time.time()
                 self.higherTransport.sent_data()
 
-        if time.time() - self.close_timer > 30:
+        if time.time() - self.close_timer > 999999:
             #self.transport = None
             self.forceclose += 1
             Rip = PEEPPacket()
@@ -592,7 +592,7 @@ class PassThroughs2(StackingProtocol):
                 self.ack_counter = 0
             else:
                 #print("server waiting...for..RIP")
-                if time.time() - self.close_timer > 90:
+                if time.time() - self.close_timer > 99999999:
                     self.info_list.readyToclose = True
                     self.higherTransport.close()
                     return
