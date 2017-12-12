@@ -21,7 +21,7 @@ class eavesdrop(asyncio.Protocol):
         print(srcPort)
         print(dst)
         print(dstPort)
-        d = PacketBaseType.Deserializer()
+        d = PEEPPacket.Deserializer()
         d.update(demuxData)
         for pkt in d.nextPackets():
             print(pkt)
