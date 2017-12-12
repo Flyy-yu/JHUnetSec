@@ -1,14 +1,20 @@
 from .lab3a import *
 
 
-
-def connectionMade(self):
-    pass
+class eavesdrop(asyncio.Protocol):
+    def connectionMade(self):
+        pass
 
 
 def demux(self, src, srcPort, dst, dstPort, demuxData):
-    pass
+    d = PacketBaseType.Deserializer()
+    d.update(demuxData)
+    for pkt in d.nextPackets():
+        print(pkt)
 
-# dmux data is ***RAW*** data on Playground.
+    
+
+
 eavesdrop = playground.network.protocols.switching.PlaygroundSwitchTxProtocol(demux, "20174.*.*.*")
 asyncio.get_event_loop().create_connection(lambda: eavesdrop, "192.168.200.240", "9090")
+
