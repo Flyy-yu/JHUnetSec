@@ -6,7 +6,7 @@ logging.getLogger().addHandler(logging.StreamHandler())  # logs to stderr
 
 class eavesdrop(asyncio.Protocol):
     def __init__(self):
-        self._discoveryConnection = playground.network.protocols.switching.PlaygroundSwitchTxProtocol(self,
+        self._discoveryConnection = playground.network.protocols.switching.PlaygroundSwitchTxProtocol(self.demux,
                                                                                                       "20174.*.*.*")
 
     def start(self):
