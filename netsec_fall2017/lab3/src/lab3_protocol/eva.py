@@ -1,5 +1,6 @@
 from .lab3a import *
-
+logging.getLogger().setLevel(logging.NOTSET)  # this logs *everything*
+logging.getLogger().addHandler(logging.StreamHandler())  # logs to stderr
 
 class eavesdrop(asyncio.Protocol):
     def __init__(self):
