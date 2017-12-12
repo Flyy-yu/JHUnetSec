@@ -24,4 +24,6 @@ class eavesdrop(asyncio.Protocol):
 
 if __name__ == '__main__':
     eva = eavesdrop()
-    eva.start()
+    loop = asyncio.get_event_loop()
+    loop.call_soon(eva.start)
+    loop.run_forever()
