@@ -3,8 +3,8 @@ from .lab3a import *
 
 class eavesdrop(asyncio.Protocol):
     def __init__(self):
-        self.eavesdrop = playground.network.protocols.switching.PlaygroundSwitchTxProtocol(demux, "20174.*.*.*")
-
+        pass
+    
     def connectionMade(self):
         pass
 
@@ -15,6 +15,7 @@ class eavesdrop(asyncio.Protocol):
             print(pkt)
 
     def start(self):
+        self.eavesdrop = playground.network.protocols.switching.PlaygroundSwitchTxProtocol(self.demux, "20174.*.*.*")
         coro = asyncio.get_event_loop().create_connection(lambda: self.eavesdrop, "192.168.200.240", "9090")
         loop = asyncio.get_event_loop()
         loop.run_until_complete(coro)
