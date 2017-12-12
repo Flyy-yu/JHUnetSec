@@ -18,8 +18,7 @@ class eavesdrop(asyncio.Protocol):
         d = PacketType.Deserializer()
         d.update(demuxData)
         pkts = list(d.nextPackets())
-        if not pkts: return
-        self._discoveryConnection.write(dst, dstPort, src, srcPort)
+        print(pkts)
 
 
 if __name__ == '__main__':
