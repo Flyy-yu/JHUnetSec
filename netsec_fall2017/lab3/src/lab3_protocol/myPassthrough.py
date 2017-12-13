@@ -491,7 +491,7 @@ class PassThroughc2(StackingProtocol):
                         print("upper level start here")
                         # setup the self.info_list for this protocal
                         self.expected_packet = pkt.SequenceNumber
-                        self.expected_ack = pkt.SequenceNumber + packet_size
+                        #self.expected_ack = pkt.SequenceNumber + packet_size
                         # setup stuff for data transfer
                         self.info_list.sequenceNumber = self.seq - 1
                         self.info_list.init_seq = self.seq
@@ -634,7 +634,7 @@ class PassThroughs2(StackingProtocol):
                         # setup the self.info_list for this protocal
 
                         self.expected_packet = pkt.SequenceNumber
-                        self.expected_ack = pkt.SequenceNumber + packet_size
+                        #self.expected_ack = pkt.SequenceNumber + packet_size
                         # setup stuff for data transfer
                         self.info_list.sequenceNumber = self.seq + 1
                         self.info_list.init_seq = self.seq
