@@ -32,7 +32,7 @@ else:
     address = mode
     coro = playground.getConnector('lab3_protocol').create_playground_connection(
         lambda: MyProtocolClient("hello", loop),
-        address, 101)
+        "20174.1.1337.1", 1)
     loop.run_until_complete(coro)
     loop.run_forever()
     loop.close()
