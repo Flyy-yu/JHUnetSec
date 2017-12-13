@@ -464,13 +464,9 @@ class PassThroughc2(StackingProtocol):
         self.seq = self.seq + 1
         SYN.Type = 0  # SYN - TYPE 0
         SYN.Checksum = SYN.calculateChecksum()
-
-        
         print("client: SYN sent")
         SYNbyte = SYN.__serialize__()
-
         self.transport.write(SYNbyte)
-
         self.resentsyn(SYN)
 
     def data_received(self, data):
