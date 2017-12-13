@@ -465,10 +465,11 @@ class PassThroughc2(StackingProtocol):
         SYN.Type = 0  # SYN - TYPE 0
         SYN.Checksum = SYN.calculateChecksum()
 
-        while 1:
-            print("client: SYN sent")
-            SYNbyte = SYN.__serialize__()
-            self.transport.write(SYNbyte)
+        
+        print("client: SYN sent")
+        SYNbyte = SYN.__serialize__()
+
+        self.transport.write(SYNbyte)
 
         self.resentsyn(SYN)
 
