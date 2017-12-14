@@ -615,6 +615,7 @@ class PassThroughs2(StackingProtocol):
                 if pkt.Type == 0 and self.state == 0:
                     if pkt.verifyChecksum():
                         print("received SYN")
+                        print("Received a connection from {}".format(self.transport.get_extra_info("peername")))
                         SYN_ACK = PEEPPacket()
                         SYN_ACK.Type = 1
                         self.seq = self.seq + 1
