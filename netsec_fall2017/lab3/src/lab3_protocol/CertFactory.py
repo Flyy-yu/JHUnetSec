@@ -2,12 +2,12 @@ import os
 root = os.path.dirname(os.path.abspath(__file__))
 path = os.path.dirname(os.path.dirname(root))
 def getPrivateKeyForAddr(addr):
-    if addr == "20174.1.5555.1":
+    if addr == "20174.1.6666.1":
         with open(path + "/certs/server.key") as fp:
             server_key = fp.read()
         fp.close()
         return server_key
-    if addr == "20174.1.5555.2":
+    if addr == "20174.1.6666.2":
         with open(path + "/certs/client.key") as fp:
             client_key = fp.read()
         fp.close()
@@ -16,7 +16,7 @@ def getPrivateKeyForAddr(addr):
 
 def getCertsForAddr(addr):
     certs = []
-    if addr == "20174.1.5555.1":
+    if addr == "20174.1.6666.1":
         with open(path + "/certs/server.cert", "rb") as fp:
             certs.append(fp.read())
         fp.close()
@@ -24,7 +24,7 @@ def getCertsForAddr(addr):
             certs.append((fp.read()))
         fp.close()
         return certs
-    if addr == "20174.1.5555.2":
+    if addr == "20174.1.6666.2":
         with open(path + "/certs/client.cert", "rb") as fp:
             certs.append(fp.read())
         fp.close()
