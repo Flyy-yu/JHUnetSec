@@ -718,7 +718,7 @@ def verify_packet(packet, expected_packet):
         print("packet number: " + str(packet.SequenceNumber))
         print("wrong packet seq number")
         goodpacket = False
-    return goodpacket
+    return True
 
 
 def verify_ack(packet):
@@ -726,7 +726,7 @@ def verify_ack(packet):
     if packet.verifyChecksum() == False:
         print("wrong checksum")
         goodpacket = False
-    return goodpacket
+    return True
 
 
 def generate_ACK(seq_number, ack_number):
