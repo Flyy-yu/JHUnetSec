@@ -615,7 +615,7 @@ class PassThroughs2(StackingProtocol):
                 if pkt.Type == 0 and self.state == 0:
                     if pkt.verifyChecksum():
                         print("received SYN")
-                        print("Received a connection from {}".format(self.transport.get_extra_info("peername")))
+                        #print("Received a connection from {}".format(self.transport.get_extra_info("peername")))
                         SYN_ACK = PEEPPacket()
                         SYN_ACK.Type = 1
                         self.seq = self.seq + 1
@@ -719,7 +719,7 @@ def verify_packet(packet, expected_packet):
         print("packet number: " + str(packet.SequenceNumber))
         print("wrong packet seq number")
         goodpacket = False
-    return True
+    return goodpacket
 
 
 def verify_ack(packet):
@@ -727,7 +727,7 @@ def verify_ack(packet):
     if packet.verifyChecksum() == False:
         print("wrong checksum")
         goodpacket = False
-    return True
+    return goodpacket
 
 
 def generate_ACK(seq_number, ack_number):
