@@ -16,8 +16,8 @@ from cryptography import x509
 from Crypto.Hash import HMAC, SHA, SHA256
 from binascii import hexlify
 from OpenSSL import crypto
-#logging.getLogger().setLevel(logging.NOTSET)  # this logs *everything*
-#logging.getLogger().addHandler(logging.StreamHandler())  # logs to stderr
+logging.getLogger().setLevel(logging.NOTSET)  # this logs *everything*
+logging.getLogger().addHandler(logging.StreamHandler())  # logs to stderr
 
 key_bytes = 32
 # M1, C->S:  PlsHello(Nc, [C_Certs])
