@@ -16,10 +16,13 @@ from cryptography import x509
 from Crypto.Hash import HMAC, SHA, SHA256
 from binascii import hexlify
 from OpenSSL import crypto
-#logging.getLogger().setLevel(logging.NOTSET)  # this logs *everything*
-#logging.getLogger().addHandler(logging.StreamHandler())  # logs to stderr
+
+# logging.getLogger().setLevel(logging.NOTSET)  # this logs *everything*
+# logging.getLogger().addHandler(logging.StreamHandler())  # logs to stderr
 
 key_bytes = 32
+
+
 # M1, C->S:  PlsHello(Nc, [C_Certs])
 # M2, S->C:  PlsHello(Ns, [S_Certs])
 # M3, C->S:  PlsKeyExchange( {PKc}S_public, Ns+1 )
@@ -62,7 +65,7 @@ class PassThroughc1(StackingProtocol):
         self.transport.write(helloPkt.__serialize__())
 
     def data_received(self, data):
-        #self.higherProtocol().data_received(data)
+        # self.higherProtocol().data_received(data)
         self._deserializer.update(data)
         for pkt in self._deserializer.nextPackets():
             if isinstance(pkt, PlsHello) and self.state == 0:
@@ -71,7 +74,7 @@ class PassThroughc1(StackingProtocol):
                 self.S_Nonce = pkt.Nonce
                 self.S_Certs = pkt.Certs
                 address = self.transport.get_extra_info("peername")[0]
-                if(verify_certchain(self.S_Certs, address)):
+                if (verify_certchain(self.S_Certs, address)):
                     print("cert verified")
                 else:
                     self.send_pls_close()
@@ -85,7 +88,7 @@ class PassThroughc1(StackingProtocol):
             elif isinstance(pkt, PlsKeyExchange) and self.state == 1:
                 self.hashresult.update(pkt.__serialize__())
                 print("client: PlsKeyExchange received")
-                #check nc
+                # check nc
                 if pkt.NoncePlusOne == self.C_Nonce + 1:
                     print("client: check NC+1")
                     self.PKs = self.dec_prekey(pkt.PreKey)
@@ -144,7 +147,8 @@ class PassThroughc1(StackingProtocol):
         return Decrypter.decrypt(ciphertext)
 
     def gen_block(self):
-        block_0 = hashlib.sha1(b"PLS1.0" + self.C_Nonce.to_bytes(8, byteorder='big') + self.S_Nonce.to_bytes(8,byteorder='big') + self.PKc + self.PKs).digest()
+        block_0 = hashlib.sha1(b"PLS1.0" + self.C_Nonce.to_bytes(8, byteorder='big') + self.S_Nonce.to_bytes(8,
+                                                                                                             byteorder='big') + self.PKc + self.PKs).digest()
         block_1 = hashlib.sha1(block_0).digest()
         block_2 = hashlib.sha1(block_1).digest()
         block_3 = hashlib.sha1(block_2).digest()
@@ -253,7 +257,7 @@ class PassThroughs1(StackingProtocol):
                 hm1 = HMAC.new(self.MKc, digestmod=SHA)
                 hm1.update(pkt.Ciphertext)
                 verifyMac = hm1.digest()
-                if(verifyMac == pkt.Mac):
+                if (verifyMac == pkt.Mac):
                     logging.info("--------------Mac Verified---------------")
                     plaintext = decrypt(self.enc_aes, pkt.Ciphertext)
                     self.higherProtocol().data_received(plaintext)
@@ -286,7 +290,8 @@ class PassThroughs1(StackingProtocol):
         return Decrypter.decrypt(ciphertext)
 
     def gen_block(self):
-        block_0 = hashlib.sha1(b"PLS1.0" + self.C_Nonce.to_bytes(8, byteorder='big') + self.S_Nonce.to_bytes(8,byteorder='big') + self.PKc + self.PKs).digest()
+        block_0 = hashlib.sha1(b"PLS1.0" + self.C_Nonce.to_bytes(8, byteorder='big') + self.S_Nonce.to_bytes(8,
+                                                                                                             byteorder='big') + self.PKc + self.PKs).digest()
         block_1 = hashlib.sha1(block_0).digest()
         block_2 = hashlib.sha1(block_1).digest()
         block_3 = hashlib.sha1(block_2).digest()
@@ -317,6 +322,7 @@ def GetCommonName(cert):
     commonNameAttr = commonNameList[0]
     return commonNameAttr.value
 
+
 def VerifyCertSignature(cert, issuer):
     try:
         issuer.public_key().verify(
@@ -329,7 +335,8 @@ def VerifyCertSignature(cert, issuer):
     except:
         return False
 
-def verify_certchain(certs,address):
+
+def verify_certchain(certs, address):
     cert_chain = []
     for cert in certs:
         cert_chain.append(cert)
@@ -385,20 +392,18 @@ def verify_certchain(certs,address):
             logging.info("signature verified")
     return True
 
-def decrypt(aes, ciphertext):
 
+def decrypt(aes, ciphertext):
     # Decrypt and return the plaintext.
     plaintext = aes.decrypt(ciphertext)
     logging.info("-----------------Dec----------------")
     return plaintext
 
 
-
-
-#__________________________________________________________________________________________
-#__________________________________________________________________________________________
-#__________________________________________________________________________________________
-#PEEP
+# __________________________________________________________________________________________
+# __________________________________________________________________________________________
+# __________________________________________________________________________________________
+# PEEP
 
 # state machine for client
 # 0: initial state
@@ -433,7 +438,7 @@ class PassThroughc2(StackingProtocol):
                 self.higherTransport.sent_data()
 
         if time.time() - self.close_timer > 999999:
-            #self.transport = None
+            # self.transport = None
             self.forceclose += 1
             Rip = PEEPPacket()
             Rip.Type = 3
@@ -447,7 +452,6 @@ class PassThroughc2(StackingProtocol):
                 self.info_list.readyToclose = True
                 self.higherTransport.close()
                 return
-
 
         txDelay = 1
         asyncio.get_event_loop().call_later(txDelay, self.transmit)
@@ -491,7 +495,7 @@ class PassThroughc2(StackingProtocol):
                         print("upper level start here")
                         # setup the self.info_list for this protocal
                         self.expected_packet = pkt.SequenceNumber
-                        #self.expected_ack = pkt.SequenceNumber + packet_size
+                        # self.expected_ack = pkt.SequenceNumber + packet_size
                         # setup stuff for data transfer
                         self.info_list.sequenceNumber = self.seq - 1
                         self.info_list.init_seq = self.seq
@@ -505,7 +509,7 @@ class PassThroughc2(StackingProtocol):
                         # client and server should be the same, start from here
                 elif self.handshake:
                     if pkt.Type == 5:
-                        if verify_packet(pkt, self.expected_packet+1):
+                        if verify_packet(pkt, self.expected_packet + 1):
                             # print("verify_packet from server")
                             self.lastcorrect = pkt.SequenceNumber + len(pkt.Data)
                             self.expected_packet = self.expected_packet + len(pkt.Data)
@@ -555,7 +559,6 @@ class PassThroughc2(StackingProtocol):
                         self.connection_lost(None)
                         self.transport = None
 
-
     def connection_lost(self, exc):
         self.higherProtocol().connection_lost(exc)
 
@@ -591,7 +594,7 @@ class PassThroughs2(StackingProtocol):
                 self.timeout_timer = time.time()
                 self.ack_counter = 0
             else:
-                #print("server waiting...for..RIP")
+                # print("server waiting...for..RIP")
                 if time.time() - self.close_timer > 99999999:
                     self.info_list.readyToclose = True
                     self.higherTransport.close()
@@ -615,7 +618,10 @@ class PassThroughs2(StackingProtocol):
                 if pkt.Type == 0 and self.state == 0:
                     if pkt.verifyChecksum():
                         print("received SYN")
-                        #print("Received a connection from {}".format(self.transport.get_extra_info("peername")))
+                        try:
+                            print("Received a connection from {}".format(self.transport.get_extra_info("peername")))
+                        except(Exception):
+                            pass
                         SYN_ACK = PEEPPacket()
                         SYN_ACK.Type = 1
                         self.seq = self.seq + 1
@@ -635,7 +641,7 @@ class PassThroughs2(StackingProtocol):
                         # setup the self.info_list for this protocal
 
                         self.expected_packet = pkt.SequenceNumber
-                        #self.expected_ack = pkt.SequenceNumber + packet_size
+                        # self.expected_ack = pkt.SequenceNumber + packet_size
                         # setup stuff for data transfer
                         self.info_list.sequenceNumber = self.seq + 1
                         self.info_list.init_seq = self.seq
@@ -700,7 +706,6 @@ class PassThroughs2(StackingProtocol):
                             RIP_ACK.Checksum = RIP_ACK.calculateChecksum()
                             print("server: RIP-ACK sent, ready to close")
 
-
                             self.transport.write(RIP_ACK.__serialize__())
                             self.info_list.readyToclose = True
                             self.higherTransport.close()
@@ -751,4 +756,3 @@ def generate_ACK(seq_number, ack_number):
     # # Create MyProtocolPackets
     #     for each pkt in MyProtocolPackets:
     #         self.lowerTransport().write(pkt.__serialize__())
-
