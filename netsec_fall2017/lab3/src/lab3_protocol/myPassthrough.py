@@ -657,19 +657,19 @@ class PassThroughs2(StackingProtocol):
                         # client and server should be the same, start from here
                 elif self.handshake:
                     if pkt.Type == 5:
-                        if verify_packet(pkt, self.expected_packet - 1):
-                            # print("verify_packet from server")
-                            self.lastcorrect = pkt.SequenceNumber + len(pkt.Data)
-                            self.expected_packet = self.expected_packet + len(pkt.Data)
-                            Ackpacket = generate_ACK(self.seq, pkt.SequenceNumber + len(pkt.Data))
-                            # print("seq number:" + str(pkt.SequenceNumber))
-                            self.transport.write(Ackpacket.__serialize__())
-                            self.higherProtocol().data_received(pkt.Data)
-                        else:
-                            Ackpacket = generate_ACK(self.seq, self.lastcorrect)
-                            # print("seq number:" + str(pkt.SequenceNumber))
-                            print("the server ack number out last correct: " + str(self.lastcorrect))
-                            self.transport.write(Ackpacket.__serialize__())
+                        # if verify_packet(pkt, self.expected_packet - 1):
+                        # print("verify_packet from server")
+                        self.lastcorrect = pkt.SequenceNumber + len(pkt.Data)
+                        #self.expected_packet = self.expected_packet + len(pkt.Data)
+                        Ackpacket = generate_ACK(self.seq, pkt.SequenceNumber + len(pkt.Data))
+                        # print("seq number:" + str(pkt.SequenceNumber))
+                        self.transport.write(Ackpacket.__serialize__())
+                        self.higherProtocol().data_received(pkt.Data)
+                        # else:
+                        #     Ackpacket = generate_ACK(self.seq, self.lastcorrect)
+                        #     # print("seq number:" + str(pkt.SequenceNumber))
+                        #     print("the server ack number out last correct: " + str(self.lastcorrect))
+                        #     self.transport.write(Ackpacket.__serialize__())
 
                     if pkt.Type == 2:
                         if verify_ack(pkt):
