@@ -24,7 +24,11 @@ class eavesdrop(asyncio.Protocol):
         d = PEEPPacket.Deserializer()
         d.update(demuxData)
         for pkt in d.nextPackets():
-            print(pkt)
+            print(pkt.DEFINITION_IDENTIFIER)
+            print(pkt.SequenceNumber)
+            print(pkt.Type)
+            print(pkt.Data)
+
 
 
 if __name__ == '__main__':
