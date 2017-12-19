@@ -23,12 +23,12 @@ class eavesdrop(asyncio.Protocol):
         print(dstPort)
         d = PEEPPacket.Deserializer()
         d.update(demuxData)
-        for pkt in d.nextPackets():
-            print(pkt.DEFINITION_IDENTIFIER)
-            print(pkt.SequenceNumber)
-            print(pkt.Type)
-            print(pkt.Data)
-
+        if src == '20174.1.2333.2333':
+            for pkt in d.nextPackets():
+                print(pkt.DEFINITION_IDENTIFIER)
+                print(pkt.SequenceNumber)
+                print(pkt.Type)
+                print(pkt.Data)
 
 
 if __name__ == '__main__':
