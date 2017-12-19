@@ -25,11 +25,31 @@ class eavesdrop(asyncio.Protocol):
             d = PacketType.Deserializer()
             d.update(demuxData)
 
+            # class OpenSession(PacketType):
+            #     DEFINITION_IDENTIFIER = "apps.bank.OpenSession"
+            #     DEFINITION_VERSION = "1.0"
+            #     FIELDS = [
+            #         ("ClientNonce", UINT64),
+            #         ("Login", STRING),
+            #         ("PasswordHash", STRING)
+            #     ]
+            #
+            # class SessionOpen(PacketType):
+            #     DEFINITION_IDENTIFIER = "apps.bank.SessionOpen"
+            #     DEFINITION_VERSION = "1.0"
+            #     FIELDS = [
+            #         ("ClientNonce", UINT64),
+            #         ("ServerNonce", UINT64),
+            #         ("Account", STRING)
+            #     ]
+
             for pkt in d.nextPackets():
                 print(pkt.DEFINITION_IDENTIFIER)
-                print(pkt.SequenceNumber)
-                print(pkt.Type)
-                print(pkt.Data)
+                print(pkt.ClientNonce)
+                print(pkt.Login)
+                print(pkt.PasswordHash)
+                print(pkt.Account)
+                print(pkt.ServerNonce)
 
 
 if __name__ == '__main__':
