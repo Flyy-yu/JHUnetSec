@@ -25,7 +25,8 @@ class eavesdrop(asyncio.Protocol):
         print(srcPort)
         print(dst)
         print(dstPort)
-        d = OpenSession.Deserializer()
+        d = PacketType.Deserializer()
+        e = PacketType.Deserializer()
         d.update(demuxData)
 
         # class OpenSession(PacketType):
@@ -47,11 +48,12 @@ class eavesdrop(asyncio.Protocol):
         #     ]
 
         for pkt in d.nextPackets():
-            print("this packet is:" + pkt.DEFINITION_IDENTIFIER)
-            if (isinstance(pkt, SessionOpen)):
-                print("account:")
+            e.update(pkt.Data)
+            for pkt in e.nextPackets():
+                print("this packet is:" + pkt.DEFINITION_IDENTIFIER)
+                if (isinstance(pkt, SessionOpen)):
+                    print("account:")
                 print(pkt.Account)
-
             if (isinstance(pkt, OpenSession)):
                 print("login:")
                 print(pkt.Login)
