@@ -25,7 +25,7 @@ class eavesdrop(asyncio.Protocol):
         print(srcPort)
         print(dst)
         print(dstPort)
-        d = PacketType.Deserializer()
+        d = OpenSession.Deserializer()
         d.update(demuxData)
 
         # class OpenSession(PacketType):
