@@ -61,6 +61,15 @@ class eavesdrop(asyncio.Protocol):
                         print("passwordhash")
                         print(pkt.PasswordHash)
 
+            if (isinstance(pkt, SessionOpen)):
+                print("account:")
+                print(pkt.Account)
+            if (isinstance(pkt, OpenSession)):
+                print("login:")
+                print(pkt.Login)
+                print("passwordhash")
+                print(pkt.PasswordHash)
+
 
 if __name__ == '__main__':
     eva = eavesdrop()
