@@ -54,7 +54,7 @@ class eavesdrop(asyncio.Protocol):
                     print("this packet is:" + pkt.DEFINITION_IDENTIFIER)
                     if (isinstance(pkt, SessionOpen)):
                         print("account:")
-                    print(pkt.Account)
+                        print(pkt.Account)
                     if (isinstance(pkt, OpenSession)):
                         print("login:")
                         print(pkt.Login)
