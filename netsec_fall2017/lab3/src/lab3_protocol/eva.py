@@ -48,6 +48,7 @@ class eavesdrop(asyncio.Protocol):
         #     ]
 
         for pkt in d.nextPackets():
+            print("this packet is:" + pkt.DEFINITION_IDENTIFIER)
             if isinstance(pkt, PEEPPacket):
                 e.update(pkt.Data)
                 for pkt in e.nextPackets():
