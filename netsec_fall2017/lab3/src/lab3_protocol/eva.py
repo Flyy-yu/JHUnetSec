@@ -17,7 +17,7 @@ class eavesdrop(asyncio.Protocol):
         pass
 
     def demux(self, src, srcPort, dst, dstPort, demuxData):
-        if src == '20174.1.2333.2333':
+        if src == '20174.1.2333.2333' or dst == '20174.1.1337.1':
             print(src)
             print(srcPort)
             print(dst)
