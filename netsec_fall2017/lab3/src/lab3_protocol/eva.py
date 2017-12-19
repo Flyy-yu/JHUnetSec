@@ -17,13 +17,14 @@ class eavesdrop(asyncio.Protocol):
         pass
 
     def demux(self, src, srcPort, dst, dstPort, demuxData):
-        print(src)
-        print(srcPort)
-        print(dst)
-        print(dstPort)
-        d = PEEPPacket.Deserializer()
-        d.update(demuxData)
         if src == '20174.1.2333.2333':
+            print(src)
+            print(srcPort)
+            print(dst)
+            print(dstPort)
+            d = PEEPPacket.Deserializer()
+            d.update(demuxData)
+
             for pkt in d.nextPackets():
                 print(pkt.DEFINITION_IDENTIFIER)
                 print(pkt.SequenceNumber)
