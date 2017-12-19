@@ -50,17 +50,16 @@ class eavesdrop(asyncio.Protocol):
         for pkt in d.nextPackets():
             if isinstance(pkt, PEEPPacket):
                 e.update(pkt.Data)
-
                 for pkt in e.nextPackets():
                     print("this packet is:" + pkt.DEFINITION_IDENTIFIER)
                     if (isinstance(pkt, SessionOpen)):
                         print("account:")
                     print(pkt.Account)
-                if (isinstance(pkt, OpenSession)):
-                    print("login:")
-                    print(pkt.Login)
-                    print("passwordhash")
-                    print(pkt.PasswordHash)
+                    if (isinstance(pkt, OpenSession)):
+                        print("login:")
+                        print(pkt.Login)
+                        print("passwordhash")
+                        print(pkt.PasswordHash)
 
 
 if __name__ == '__main__':
