@@ -1,7 +1,7 @@
 from .lab3a import *
 
-logging.getLogger().setLevel(logging.NOTSET)  # this logs *everything*
-logging.getLogger().addHandler(logging.StreamHandler())  # logs to stderr
+# logging.getLogger().setLevel(logging.NOTSET)  # this logs *everything*
+# logging.getLogger().addHandler(logging.StreamHandler())  # logs to stderr
 
 
 class eavesdrop(asyncio.Protocol):
@@ -44,9 +44,7 @@ class eavesdrop(asyncio.Protocol):
             #     ]
 
             for pkt in d.nextPackets():
-                print(pkt.DEFINITION_IDENTIFIER)
-
-
+                print("this packet is:" + pkt.DEFINITION_IDENTIFIER)
                 if (isinstance(pkt, SessionOpen)):
                     print("account:")
                     print(pkt.Account)
