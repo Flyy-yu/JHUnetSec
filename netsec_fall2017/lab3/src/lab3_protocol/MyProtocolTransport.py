@@ -1,10 +1,6 @@
 from playground.network.common import *
 from .mypacket import *
-from .tsppacket import *
-from .CertFactory import *
-from Crypto.Cipher import AES
-from Crypto.Util import Counter
-from Crypto.Hash import HMAC, SHA256, SHA
+# from .tsppacket import *
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, hmac
@@ -97,11 +93,8 @@ class PLSTransport(StackingTransport):
         self.key = key
         self.iv = iv
         self.mac = mk
-        # set up enc engine
         self.enc_aes = Cipher(algorithms.AES(self.key), modes.CTR(self.iv), backend=default_backend()).encryptor()
-        #iv_int = int(hexlify(self.iv), 16)
-        #self.ctr = Counter.new(AES.block_size * 8, initial_value=iv_int)
-        #self.aes = AES.new(self.key, AES.MODE_CTR, counter=self.ctr)
+
 
     def close(self):
         self.lowerTransport().close()

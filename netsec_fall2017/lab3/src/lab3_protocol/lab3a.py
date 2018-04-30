@@ -22,8 +22,8 @@ class MyProtocolClient(asyncio.Protocol):
         print("client: RequestToConnect sent")
         self.transport.write(requestpktB)
 
-        while 1:
-            self.transport.write(requestpktB)
+        #while 1:
+        #    self.transport.write(requestpktB)
 
     def data_received(self, data):
         self._deserializer.update(data)

@@ -5,16 +5,14 @@ import logging
 import asyncio
 import hashlib
 import sys
-from Crypto.Cipher import AES
-from Crypto.Util import Counter
-from Crypto.Cipher.PKCS1_OAEP import PKCS1OAEP_Cipher
-from Crypto.PublicKey import RSA
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.primitives import hashes, hmac
+from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.backends import default_backend
 from cryptography.x509.oid import NameOID
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography import x509
-from Crypto.Hash import HMAC, SHA, SHA256
-from binascii import hexlify
+
 from OpenSSL import crypto
 
 # logging.getLogger().setLevel(logging.NOTSET)  # this logs *everything*
@@ -111,9 +109,12 @@ class PassThroughc1(StackingProtocol):
                 else:
                     print("Hash validated error!")
             elif isinstance(pkt, PlsData) and self.handshake:
-                hm1 = HMAC.new(self.MKs, digestmod=SHA)
+                hm1 = hmac.HMAC(self.MKs, hashes.SHA1(), backend=default_backend())
                 hm1.update(pkt.Ciphertext)
-                verifyMac = hm1.digest()
+                verifyMac = hm1.finalize()
+                # hm1 = HMAC.new(self.MKs, digestmod=SHA)
+                # hm1.update(pkt.Ciphertext)
+                # verifyMac = hm1.digest()
                 if (verifyMac == pkt.Mac):
                     plaintext = decrypt(self.enc_aes, pkt.Ciphertext)
                     logging.info("--------------Mac Verified---------------")
@@ -134,17 +135,15 @@ class PassThroughc1(StackingProtocol):
         self.higherProtocol().connection_lost(exc)
 
     def enc_prekey(self):
-        crtObj = crypto.load_certificate(crypto.FILETYPE_PEM, self.S_Certs[0])
-        pubKeyObject = crtObj.get_pubkey()
-        pubKeyString = crypto.dump_publickey(crypto.FILETYPE_PEM, pubKeyObject)
-        key = RSA.importKey(pubKeyString)
-        Encrypter = PKCS1OAEP_Cipher(key, None, None, None)
-        return Encrypter.encrypt(self.PKc)
+        crtObj = x509.load_pem_x509_certificate(self.S_Certs[0], default_backend())
+        public_key = crtObj.public_key()
+        ciphertext = public_key.encrypt(self.PKc,padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()),algorithm=hashes.SHA256(),label=None))
+        return ciphertext
 
     def dec_prekey(self, ciphertext):
-        CpriK = RSA.importKey(self.C_privKey)
-        Decrypter = PKCS1OAEP_Cipher(CpriK, None, None, None)
-        return Decrypter.decrypt(ciphertext)
+        CpriK = serialization.load_pem_private_key(bytes(self.C_privKey, encoding='utf8'), password=None, backend=default_backend())
+        plaintext = CpriK.decrypt(ciphertext, padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()),algorithm=hashes.SHA256(),label=None))
+        return plaintext
 
     def gen_block(self):
         block_0 = hashlib.sha1(b"PLS1.0" + self.C_Nonce.to_bytes(8, byteorder='big') + self.S_Nonce.to_bytes(8,
@@ -162,10 +161,11 @@ class PassThroughc1(StackingProtocol):
         self.MKc = block_bytes[64:80]
         self.MKs = block_bytes[80:96]
 
-        iv_int = int(hexlify(self.IVs), 16)
-        self.enc_ctr = Counter.new(AES.block_size * 8, initial_value=iv_int)
+        #iv_int = int(hexlify(self.IVs), 16)
+        #self.enc_ctr = Counter.new(AES.block_size * 8, initial_value=iv_int)
         # Create AES-CTR cipher.
-        self.enc_aes = AES.new(self.Eks, AES.MODE_CTR, counter=self.enc_ctr)
+        #self.enc_aes = AES.new(self.Eks, AES.MODE_CTR, counter=self.enc_ctr)
+        self.enc_aes = Cipher(algorithms.AES(self.Eks), modes.CTR(self.IVs), backend=default_backend()).decryptor()
 
     def send_pls_close(self, error_info=None):
         err_packet = PlsClose()
@@ -254,9 +254,12 @@ class PassThroughs1(StackingProtocol):
                 else:
                     print("Hash validated error!")
             elif isinstance(pkt, PlsData) and self.handshake:
-                hm1 = HMAC.new(self.MKc, digestmod=SHA)
+                # hm1 = HMAC.new(self.MKc, digestmod=SHA)
+                # hm1.update(pkt.Ciphertext)
+                # verifyMac = hm1.digest()
+                hm1 = hmac.HMAC(self.MKc, hashes.SHA1(), backend=default_backend())
                 hm1.update(pkt.Ciphertext)
-                verifyMac = hm1.digest()
+                verifyMac = hm1.finalize()
                 if (verifyMac == pkt.Mac):
                     logging.info("--------------Mac Verified---------------")
                     plaintext = decrypt(self.enc_aes, pkt.Ciphertext)
@@ -277,17 +280,25 @@ class PassThroughs1(StackingProtocol):
         self.higherProtocol().connection_lost(exc)
 
     def enc_prekey(self):
-        crtObj = crypto.load_certificate(crypto.FILETYPE_PEM, self.C_Certs[0])
-        pubKeyObject = crtObj.get_pubkey()
-        pubKeyString = crypto.dump_publickey(crypto.FILETYPE_PEM, pubKeyObject)
-        key = RSA.importKey(pubKeyString)
-        Encrypter = PKCS1OAEP_Cipher(key, None, None, None)
-        return Encrypter.encrypt(self.PKs)
+        crtObj = x509.load_pem_x509_certificate(self.C_Certs[0], default_backend())
+        public_key = crtObj.public_key()
+        ciphertext = public_key.encrypt(self.PKs,padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()),algorithm=hashes.SHA256(),label=None))
+        return ciphertext
+
 
     def dec_prekey(self, ciphertext):
-        CpriK = RSA.importKey(self.SPriK)
-        Decrypter = PKCS1OAEP_Cipher(CpriK, None, None, None)
-        return Decrypter.decrypt(ciphertext)
+        # CpriK = RSA.importKey(self.SPriK)
+        # Decrypter = PKCS1OAEP_Cipher(CpriK, None, None, None)
+        # return Decrypter.decrypt(ciphertext)
+        # CpriK = serialization.load_pem_private_key(bytes(self.SPriK, encoding='utf8'), password=None, backend=default_backend())
+        # plaintext = CpriK.decrypt(ciphertext,
+        #                           padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()), algorithm=hashes.SHA256(),
+        #                                        label=None))
+        # print(ciphertext)
+        SpriK = serialization.load_pem_private_key(bytes(self.SPriK, encoding='utf8'), password=None, backend=default_backend())
+        # print(SpriK)
+        plaintext = SpriK.decrypt(ciphertext, padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()),algorithm=hashes.SHA256(),label=None))
+        return plaintext
 
     def gen_block(self):
         block_0 = hashlib.sha1(b"PLS1.0" + self.C_Nonce.to_bytes(8, byteorder='big') + self.S_Nonce.to_bytes(8,
@@ -305,10 +316,15 @@ class PassThroughs1(StackingProtocol):
         self.MKc = block_bytes[64:80]
         self.MKs = block_bytes[80:96]
 
-        iv_int = int(hexlify(self.IVc), 16)
-        self.enc_ctr = Counter.new(AES.block_size * 8, initial_value=iv_int)
+        # iv_int = int(hexlify(self.IVc), 16)
+        # self.enc_ctr = Counter.new(AES.block_size * 8, initial_value=iv_int)
         # Create AES-CTR cipher.
-        self.enc_aes = AES.new(self.Ekc, AES.MODE_CTR, counter=self.enc_ctr)
+        # self.enc_aes = AES.new(self.Ekc, AES.MODE_CTR, counter=self.enc_ctr)
+        self.enc_aes = Cipher(algorithms.AES(self.Ekc), modes.CTR(self.IVc), backend=default_backend()).decryptor()
+
+        # self.higherTransport.get_info(self.Ekc, self.IVc, self.MKc)
+
+
 
     def send_pls_close(self, error_info=None):
         err_packet = PlsClose()
@@ -342,12 +358,14 @@ def verify_certchain(certs, address):
         cert_chain.append(cert)
     cert_chain.append(getRootCert())
     X509_list = []
-    crypto_list = []
+    #crypto_list = []
     for cert in cert_chain:
         x509obj = x509.load_pem_x509_certificate(cert, default_backend())
         X509_list.append(x509obj)
-        cert = crypto.load_certificate(crypto.FILETYPE_PEM, cert)
-        crypto_list.append(cert)
+
+
+        #cert = crypto.load_certificate(crypto.FILETYPE_PEM, cert)
+        #crypto_list.append(cert)
 
     # verify playground address
     logging.info("PLS received a connection from address {}".format(address))
@@ -369,15 +387,15 @@ def verify_certchain(certs, address):
             logging.info("Address error")
 
     # verify the issuer and subject
-    for i in range(len(crypto_list) - 1):
-        issuer = crypto_list[i].get_issuer()
-        logging.info(issuer)
-        subject = crypto_list[i + 1].get_subject()
-        logging.info(subject)
-        if issuer == subject:
-            logging.info("issuer and subject verified")
-        else:
-            return False
+    # for i in range(len(X509_list) - 1):
+    #     issuer = X509_list[i].subject.issuer
+    #     logging.info(issuer)
+    #     subject = X509_list[i + 1].subject.subject
+    #     logging.info(subject)
+    #     if issuer == subject:
+    #         logging.info("issuer and subject verified")
+    #     else:
+    #         return False
 
     # verify the signature sha256
     for i in range(len(X509_list) - 1):
@@ -395,7 +413,7 @@ def verify_certchain(certs, address):
 
 def decrypt(aes, ciphertext):
     # Decrypt and return the plaintext.
-    plaintext = aes.decrypt(ciphertext)
+    plaintext = aes.update(ciphertext)
     logging.info("-----------------Dec----------------")
     return plaintext
 

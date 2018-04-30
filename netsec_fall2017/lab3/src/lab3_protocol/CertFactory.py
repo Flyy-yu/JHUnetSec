@@ -3,7 +3,7 @@ import os
 root = os.path.dirname(os.path.abspath(__file__))
 path = os.path.dirname(os.path.dirname(root))
 
-
+print(path)
 def getPrivateKeyForAddr(addr):
     if addr == "20174.1.2333.1":
         with open(path + "/certs/server.key") as fp:
