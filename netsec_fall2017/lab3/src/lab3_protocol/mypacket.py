@@ -2,13 +2,6 @@ from playground.network.packet import PacketType
 from playground.network.packet.fieldtypes import *
 from playground.network.packet.fieldtypes.attributes import *
 import zlib
-import uuid
-import random
-import time
-from OpenSSL import crypto, SSL
-from socket import gethostname
-from pprint import pprint
-from time import gmtime, mktime
 
 
 class RequestToConnect(PacketType):

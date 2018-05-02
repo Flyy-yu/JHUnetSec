@@ -13,7 +13,7 @@ from cryptography.x509.oid import NameOID
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography import x509
 
-from OpenSSL import crypto
+
 
 # logging.getLogger().setLevel(logging.NOTSET)  # this logs *everything*
 # logging.getLogger().addHandler(logging.StreamHandler())  # logs to stderr

@@ -1,6 +1,5 @@
 import playground
 import random
-import sys, time, os, logging, asyncio
 from .myPassthrough import *
 
 # this is the client

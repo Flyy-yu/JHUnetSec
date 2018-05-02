@@ -15,6 +15,11 @@ def getPrivateKeyForAddr(addr):
             client_key = fp.read()
         fp.close()
         return client_key
+    if addr == "20181.666.2.15":
+        with open(path + "/certs/15.key") as fp:
+            client_key = fp.read()
+        fp.close()
+        return client_key
     if addr == "20181.666.2.16":
         with open(path + "/certs/16.key") as fp:
             client_key = fp.read()
@@ -42,19 +47,19 @@ def getCertsForAddr(addr):
             certs.append((fp.read()))
         fp.close()
         return certs
-    if addr == "20181.666.2.16":
-        with open(path + "/certs/16.cert", "rb") as fp:
+    if addr == "20181.666.2.15":
+        with open(path + "/certs/15.cert", "rb") as fp:
             certs.append(fp.read())
         fp.close()
         with open(path + "/certs/signed.cert", "rb") as fp:
             certs.append((fp.read()))
         fp.close()
         return certs
-    if addr == "20174.1.1337.3":
-        with open(path + "/certs/client636.cert", "rb") as fp:
+    if addr == "20181.666.2.16":
+        with open(path + "/certs/16.cert", "rb") as fp:
             certs.append(fp.read())
         fp.close()
-        with open(path + "/certs/addr636.cert", "rb") as fp:
+        with open(path + "/certs/signed.cert", "rb") as fp:
             certs.append((fp.read()))
         fp.close()
         return certs
